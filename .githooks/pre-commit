@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+
+set -eu
+
+# Check only staged text changes for possible OpenAI secret leaks.
+staged_content="$(git diff --cached --unified=0 --text)"
+
+if printf '%s' "$staged_content" | grep -Eiq "openai[_-]?api[_-]?key[[:space:]]*[:=][[:space:]]*['\"]?sk-[A-Za-z0-9]{20,}"; then
+  echo "ERROR: Possible OpenAI API key leak detected in staged changes."
+  echo "Remove the key and use environment variables (OPENAI_API_KEY)."
+  exit 1
+fi
+
+if printf '%s' "$staged_content" | grep -Eiq 'sk-[A-Za-z0-9]{20,}'; then
+  echo "ERROR: Secret pattern detected (OpenAI-like key)."
+  echo "Commit rejected to avoid leaking credentials."
+  exit 1
+fi
