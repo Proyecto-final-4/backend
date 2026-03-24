@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify formatter, linter and bug analysis
+        run: ./mvnw -B -ntp spotless:check checkstyle:check spotbugs:check
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: quality
+    permissions:
+      contents: read
+
+    services:
+      pgvector:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: backend-4
+          POSTGRES_USER: backend
+          POSTGRES_PASSWORD: backend
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U backend -d backend-4"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/backend-4
+      SPRING_DATASOURCE_USERNAME: backend
+      SPRING_DATASOURCE_PASSWORD: backend
+      SPRING_AI_OPENAI_API_KEY: replace_with_real_openai_key
+      SPRING_AI_OPENAI_EMBEDDING_OPTIONS_MODEL: text-embedding-3-small
+      SPRING_AI_VECTORSTORE_PGVECTOR_INITIALIZE_SCHEMA: "true"
+      SPRING_AI_VECTORSTORE_PGVECTOR_DIMENSIONS: "1536"
+      SPRING_CLOUD_AWS_ENDPOINT: http://localhost:4666
+      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
+      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Run tests
+        run: ./mvnw -B -ntp test
