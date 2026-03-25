@@ -79,5 +79,25 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x ./mvnw
 
+      - name: Apply Flyway migrations
+        run: >-
+          ./mvnw -B -ntp
+          -Dflyway.url=jdbc:postgresql://localhost:5432/backend-4
+          -Dflyway.user=backend
+          -Dflyway.password=backend
+          -Dflyway.locations=filesystem:src/main/resources/db/migration
+          -Dflyway.baselineOnMigrate=true
+          org.flywaydb:flyway-maven-plugin:migrate
+
+      - name: Fail fast if users table is missing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          table_name=$(PGPASSWORD=backend psql -h localhost -U backend -d backend-4 -tAc "select to_regclass('public.users')")
+          if [ "$table_name" != "users" ]; then
+            echo "Expected table public.users to exist after migrations, but got: $table_name"
+            exit 1
+          fi
+
       - name: Run tests
         run: ./mvnw -B -ntp test
