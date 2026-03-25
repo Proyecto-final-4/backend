@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/LEIDER/Documents/backend diff)",
+      "Bash(git -C /c/Users/LEIDER/Documents/backend status)"
+    ]
+  }
+}
