@@ -15,26 +15,26 @@ import org.springframework.core.env.Environment;
 @SpringBootTest(properties = "app.env.validation.enabled=false")
 class VectorStoreSmokeTest {
 
-  @Autowired private VectorStore vectorStore;
+    @Autowired private VectorStore vectorStore;
 
-  @Autowired private Environment environment;
+    @Autowired private Environment environment;
 
-  @Test
-  void embedsAndFindsSamePhrase() {
-    String apiKey = environment.getProperty("spring.ai.openai.api-key", "");
-    Assumptions.assumeTrue(
-        !apiKey.isBlank() && !"replace_with_real_openai_key".equals(apiKey),
-        "Set SPRING_AI_OPENAI_API_KEY in .env before running this test.");
+    @Test
+    void embedsAndFindsSamePhrase() {
+        String apiKey = environment.getProperty("spring.ai.openai.api-key", "");
+        Assumptions.assumeTrue(
+                !apiKey.isBlank() && !"replace_with_real_openai_key".equals(apiKey),
+                "Set SPRING_AI_OPENAI_API_KEY in .env before running this test.");
 
-    String phrase = "testing embedding";
+        String phrase = "testing embedding";
 
-    vectorStore.add(List.of(new Document(phrase)));
+        vectorStore.add(List.of(new Document(phrase)));
 
-    List<Document> results =
-        vectorStore.similaritySearch(SearchRequest.builder().query(phrase).topK(1).build());
+        List<Document> results =
+                vectorStore.similaritySearch(SearchRequest.builder().query(phrase).topK(1).build());
 
-    assertThat(results).isNotNull();
-    assertThat(results).isNotEmpty();
-    assertThat(results.getFirst().getText()).contains(phrase);
-  }
+        assertThat(results).isNotNull();
+        assertThat(results).isNotEmpty();
+        assertThat(results.getFirst().getText()).contains(phrase);
+    }
 }
