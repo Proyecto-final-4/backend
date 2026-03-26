@@ -176,7 +176,6 @@
 					<effort>Max</effort>
 					<threshold>Low</threshold>
 					<failOnError>true</failOnError>
-					<excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
 				</configuration>
 				<executions>
 					<execution>
@@ -195,9 +194,9 @@
 					<lineEndings>UNIX</lineEndings>
 					<java>
 						<googleJavaFormat>
-							<version>1.22.0</version>
-							<style>AOSP</style>
-						</googleJavaFormat>
+						<version>1.22.0</version>
+						<style>AOSP</style>
+					</googleJavaFormat>
 						<removeUnusedImports/>
 						<formatAnnotations/>
 					</java>
