@@ -15,83 +15,83 @@ import jakarta.persistence.Table;
 @Table(name = "categories")
 public class Category extends BaseEntity {
 
-  @Column(nullable = false, length = 100)
-  private String name;
+    @Column(nullable = false, length = 100)
+    private String name;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private CategoryType type;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CategoryType type;
 
-  @Column(length = 7, nullable = true)
-  private String color;
+    @Column(length = 7, nullable = true)
+    private String color;
 
-  @Column(length = 50, nullable = true)
-  private String icon;
+    @Column(length = 50, nullable = true)
+    private String icon;
 
-  @Column(nullable = false)
-  private boolean isSystem = false;
+    @Column(nullable = false)
+    private boolean isSystem = false;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = true)
-  private User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "parent_id", nullable = true)
-  private Category parent;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", nullable = true)
+    private Category parent;
 
-  public String getName() {
-    return name;
-  }
+    public String getName() {
+        return name;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public CategoryType getType() {
-    return type;
-  }
+    public CategoryType getType() {
+        return type;
+    }
 
-  public void setType(CategoryType type) {
-    this.type = type;
-  }
+    public void setType(CategoryType type) {
+        this.type = type;
+    }
 
-  public String getColor() {
-    return color;
-  }
+    public String getColor() {
+        return color;
+    }
 
-  public void setColor(String color) {
-    this.color = color;
-  }
+    public void setColor(String color) {
+        this.color = color;
+    }
 
-  public String getIcon() {
-    return icon;
-  }
+    public String getIcon() {
+        return icon;
+    }
 
-  public void setIcon(String icon) {
-    this.icon = icon;
-  }
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
 
-  public boolean isSystem() {
-    return isSystem;
-  }
+    public boolean isSystem() {
+        return isSystem;
+    }
 
-  public void setSystem(boolean isSystem) {
-    this.isSystem = isSystem;
-  }
+    public void setSystem(boolean isSystem) {
+        this.isSystem = isSystem;
+    }
 
-  public User getUser() {
-    return user;
-  }
+    public User getUser() {
+        return user;
+    }
 
-  public void setUser(User user) {
-    this.user = user;
-  }
+    public void setUser(User user) {
+        this.user = user;
+    }
 
-  public Category getParent() {
-    return parent;
-  }
+    public Category getParent() {
+        return parent;
+    }
 
-  public void setParent(Category parent) {
-    this.parent = parent;
-  }
+    public void setParent(Category parent) {
+        this.parent = parent;
+    }
 }
