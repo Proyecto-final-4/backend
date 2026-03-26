@@ -1,12 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
   <!--
-    JPA entities require direct getters/setters over managed object references.
-    Defensive copying of JPA-managed entities is not applicable and would break
-    the persistence context. EI_EXPOSE_REP / EI_EXPOSE_REP2 are false positives here.
+    JPA entities and Spring-managed beans require direct getters/setters over managed
+    object references. Defensive copying is not applicable and would break the
+    persistence context or Spring's dependency injection. EI_EXPOSE_REP / EI_EXPOSE_REP2
+    are false positives for all domain and security Spring components.
   -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Package name="~com\.backend\.backend\.(domain|security).*"/>
+  </Match>
+
+  <!--
+    Services intentionally throw RuntimeException (e.g. EntityNotFoundException,
+    IllegalArgumentException) as part of the application's error-handling strategy.
+    These are mapped to HTTP responses by GlobalExceptionHandler.
+  -->
+  <Match>
+    <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
     <Package name="~com\.backend\.backend\.domain.*"/>
+  </Match>
+
+  <!--
+    Spring Security's HttpSecurity API declares throws Exception by design.
+    AuthenticationConfiguration.getAuthenticationManager() also throws Exception.
+    These cannot be made more specific without modifying Spring's own interfaces.
+  -->
+  <Match>
+    <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+    <Package name="~com\.backend\.backend\.security.*"/>
   </Match>
 </FindBugsFilter>
