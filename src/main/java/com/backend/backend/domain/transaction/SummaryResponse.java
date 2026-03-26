@@ -7,4 +7,9 @@ public record SummaryResponse(
         BigDecimal totalIncome,
         BigDecimal totalExpense,
         BigDecimal balance,
-        List<CategorySummary> byCategory) {}
+        List<CategorySummary> byCategory) {
+
+    public SummaryResponse {
+        byCategory = byCategory == null ? List.of() : List.copyOf(byCategory);
+    }
+}
