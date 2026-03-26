@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(git -C /c/Users/LEIDER/Documents/backend diff)",
-      "Bash(git -C /c/Users/LEIDER/Documents/backend status)"
+      "Bash(git -C /c/Users/LEIDER/Documents/backend status)",
+      "Bash(xargs -I{} sh -c \"jar tf \"\"$1\"\" 2>/dev/null | grep -l flyway && echo \"\"$1\"\"\" _ {})",
+      "Bash(for jar:*)",
+      "Bash(do echo:*)",
+      "Bash(jar tf:*)",
+      "Bash(done)"
     ]
   }
 }
