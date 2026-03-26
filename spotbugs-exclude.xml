@@ -7,6 +7,6 @@
   -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
-    <Package name="com.backend.backend.domain"/>
+    <Package name="~com\.backend\.backend\.domain.*"/>
   </Match>
 </FindBugsFilter>
