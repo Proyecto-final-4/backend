@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <!--
+    JPA entities require direct getters/setters over managed object references.
+    Defensive copying of JPA-managed entities is not applicable and would break
+    the persistence context. EI_EXPOSE_REP / EI_EXPOSE_REP2 are false positives here.
+  -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Package name="com.backend.backend.domain"/>
+  </Match>
+</FindBugsFilter>
