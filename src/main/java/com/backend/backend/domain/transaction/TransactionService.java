@@ -17,14 +17,17 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final EmbeddingService embeddingService;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             CategoryRepository categoryRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            EmbeddingService embeddingService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.embeddingService = embeddingService;
     }
 
     public Page<TransactionResponse> getAll(
@@ -77,6 +80,10 @@ public class TransactionService {
         transaction.setNotes(request.notes());
 
         transactionRepository.save(transaction);
+
+        transaction.setEmbedding(embeddingService.generateEmbedding(transaction.getDescription()));
+        transactionRepository.save(transaction);
+
         return toResponse(transaction);
     }
 
@@ -99,6 +106,7 @@ public class TransactionService {
         }
         if (request.description() != null) {
             transaction.setDescription(request.description());
+            transaction.setEmbedding(embeddingService.generateEmbedding(request.description()));
         }
         if (request.notes() != null) {
             transaction.setNotes(request.notes());

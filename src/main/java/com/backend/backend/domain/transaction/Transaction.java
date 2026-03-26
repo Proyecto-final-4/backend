@@ -102,10 +102,10 @@ public class Transaction extends BaseEntity {
     }
 
     public float[] getEmbedding() {
-        return embedding;
+        return embedding == null ? null : embedding.clone();
     }
 
     public void setEmbedding(float[] embedding) {
-        this.embedding = embedding;
+        this.embedding = embedding == null ? null : embedding.clone();
     }
 }

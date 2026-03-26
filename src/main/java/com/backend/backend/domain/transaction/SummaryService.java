@@ -29,11 +29,14 @@ public class SummaryService {
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
         LocalDate effectiveFrom = from != null ? from : LocalDate.now().withDayOfMonth(1);
-        LocalDate effectiveTo = to != null ? to : LocalDate.now().withDayOfMonth(1).plusMonths(1).minusDays(1);
+        LocalDate effectiveTo =
+                to != null ? to : LocalDate.now().withDayOfMonth(1).plusMonths(1).minusDays(1);
 
         Specification<Transaction> spec =
                 Specification.where(TransactionSpecifications.hasUserId(user.getId()))
-                        .and(TransactionSpecifications.transactionDateBetween(effectiveFrom, effectiveTo));
+                        .and(
+                                TransactionSpecifications.transactionDateBetween(
+                                        effectiveFrom, effectiveTo));
 
         List<Transaction> transactions = transactionRepository.findAll(spec);
 
@@ -57,9 +60,10 @@ public class SummaryService {
                 transactions.stream()
                         .collect(
                                 Collectors.groupingBy(
-                                        t -> new CategoryKey(
-                                                t.getCategory().getId(),
-                                                t.getCategory().getName()),
+                                        t ->
+                                                new CategoryKey(
+                                                        t.getCategory().getId(),
+                                                        t.getCategory().getName()),
                                         Collectors.reducing(
                                                 BigDecimal.ZERO,
                                                 Transaction::getAmount,
