@@ -9,36 +9,36 @@ import jakarta.persistence.Table;
 @Table(name = "users")
 public class User extends BaseEntity {
 
-  @Column(nullable = false, unique = true, length = 255)
-  private String email;
+    @Column(nullable = false, unique = true, length = 255)
+    private String email;
 
-  @Column(nullable = false, length = 255)
-  private String passwordHash;
+    @Column(nullable = false, length = 255)
+    private String passwordHash;
 
-  @Column(nullable = false, length = 100)
-  private String name;
+    @Column(nullable = false, length = 100)
+    private String name;
 
-  public String getEmail() {
-    return email;
-  }
+    public String getEmail() {
+        return email;
+    }
 
-  public void setEmail(String email) {
-    this.email = email;
-  }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-  public String getPasswordHash() {
-    return passwordHash;
-  }
+    public String getPasswordHash() {
+        return passwordHash;
+    }
 
-  public void setPasswordHash(String passwordHash) {
-    this.passwordHash = passwordHash;
-  }
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 
-  public String getName() {
-    return name;
-  }
+    public String getName() {
+        return name;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public void setName(String name) {
+        this.name = name;
+    }
 }

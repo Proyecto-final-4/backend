@@ -8,6 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 @Disabled("Use VectorStoreSmokeTest for initial AI integration validation.")
 class BackendApplicationTests {
 
-  @Test
-  void contextLoads() {}
+    @Test
+    void contextLoads() {}
 }
