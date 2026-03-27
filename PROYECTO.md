@@ -240,42 +240,212 @@ Meta de ahorro con un objetivo monetario y fecha límite opcional.
 
 ## API REST — Endpoints
 
+> Todos los endpoints salvo `/auth/**` y `/health` requieren el header `Authorization: Bearer <token>`.
+> Los errores devuelven `400` con `{ "error": "mensaje" }`.
+
+---
+
+### Salud (`/health`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/health` | Verificar que el servidor está activo (sin autenticación) |
+
+**Respuesta**
+```json
+{ "status": "UP", "timestamp": "2025-06-15T13:00:00Z" }
+```
+
+---
+
 ### Autenticación (`/auth`)
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/auth/register` | Crear cuenta nueva |
-| POST | `/auth/login` | Login, devuelve JWT |
+| POST | `/auth/login` | Iniciar sesión, devuelve JWT |
+
+**`POST /auth/register`**
+```json
+// Enviar
+{ "name": "Juan Pérez", "email": "juan@example.com", "password": "secret123" }
+
+// Recibir
+{ "token": "<jwt>", "id": "uuid", "name": "Juan Pérez", "email": "juan@example.com" }
+```
+
+**`POST /auth/login`**
+```json
+// Enviar
+{ "email": "juan@example.com", "password": "secret123" }
+
+// Recibir
+{ "token": "<jwt>", "id": "uuid", "name": "Juan Pérez", "email": "juan@example.com" }
+```
+
+---
 
 ### Perfil (`/users`)
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/users/me` | Datos del usuario autenticado |
 | PUT | `/users/me` | Actualizar nombre o contraseña |
 
-### Transacciones (`/transactions`)
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/transactions` | Crear transacción (genera embedding) |
-| GET | `/transactions` | Listar con filtros (fecha, categoría, tipo, paginación) |
-| GET | `/transactions/{id}` | Detalle de una transacción |
-| PUT | `/transactions/{id}` | Actualizar (regenera embedding si cambia descripción) |
-| DELETE | `/transactions/{id}` | Eliminar |
+**`GET /users/me`**
+```json
+// Recibir
+{ "id": "uuid", "name": "Juan Pérez", "email": "juan@example.com", "createdAt": "2025-01-01T00:00:00Z" }
+```
+
+**`PUT /users/me`** — todos los campos son opcionales
+```json
+// Enviar (para cambiar contraseña se deben enviar los dos campos de password)
+{ "name": "Juan A. Pérez", "currentPassword": "secret123", "newPassword": "nuevaPassword" }
+
+// Recibir — mismo formato que GET /users/me
+```
+
+---
 
 ### Categorías (`/categories`)
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/categories` | Listar todas (sistema + personalizadas del usuario) |
 | POST | `/categories` | Crear categoría personalizada |
 | PUT | `/categories/{id}` | Editar (solo categorías propias) |
-| DELETE | `/categories/{id}` | Eliminar (solo categorías propias, sin transacciones) |
+| DELETE | `/categories/{id}` | Eliminar (solo categorías propias, sin transacciones asociadas) |
 
-### Resumen financiero (`/summary`)
+**`GET /categories`**
+```json
+// Recibir
+[
+  {
+    "id": "uuid",
+    "name": "Alimentación",
+    "type": "EXPENSE",
+    "color": "#FF5733",
+    "icon": "utensils",
+    "isSystem": true,
+    "parentId": null
+  }
+]
+```
+
+| Campo | Valores posibles |
+|---|---|
+| `type` | `INCOME` / `EXPENSE` / `BOTH` |
+| `isSystem` | `true` = predefinida del sistema, `false` = creada por el usuario |
+| `parentId` | UUID de la categoría padre, o `null` |
+
+**`POST /categories`** — `color`, `icon` y `parentId` son opcionales
+```json
+// Enviar
+{ "name": "Gym", "type": "EXPENSE", "color": "#4CAF50", "icon": "dumbbell", "parentId": null }
+
+// Recibir — mismo formato que un ítem de GET /categories
+```
+
+**`PUT /categories/{id}`** — mismo cuerpo que POST
+**`DELETE /categories/{id}`** — sin cuerpo, responde `204`
+
+---
+
+### Transacciones (`/transactions`)
+
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/summary` | Balance actual, totales por tipo y por categoría del período |
-| GET | `/summary/trends` | Comparativa entre períodos (mes actual vs anterior, etc.) |
+| GET | `/transactions` | Listar con filtros opcionales y paginación |
+| GET | `/transactions/{id}` | Detalle de una transacción |
+| POST | `/transactions` | Crear transacción (genera embedding automáticamente) |
+| PUT | `/transactions/{id}` | Actualizar (regenera embedding si cambia la descripción) |
+| DELETE | `/transactions/{id}` | Eliminar |
 
-### Presupuestos (`/budgets`)
+**`GET /transactions`** — todos los parámetros son opcionales
+
+| Parámetro | Descripción | Ejemplo |
+|---|---|---|
+| `type` | Filtrar por tipo | `INCOME` o `EXPENSE` |
+| `categoryId` | Filtrar por categoría | UUID |
+| `from` | Fecha inicio | `2025-06-01` |
+| `to` | Fecha fin | `2025-06-30` |
+| `page` | Página (base 0) | `0` |
+| `size` | Ítems por página | `20` (default) |
+
+```json
+// Recibir
+{
+  "content": [
+    {
+      "id": "uuid",
+      "categoryId": "uuid",
+      "categoryName": "Alimentación",
+      "amount": "25.50",
+      "type": "EXPENSE",
+      "transactionDate": "2025-06-15",
+      "description": "Almuerzo",
+      "notes": "Con el equipo",
+      "createdAt": "2025-06-15T13:00:00Z"
+    }
+  ],
+  "totalElements": 100,
+  "totalPages": 5,
+  "size": 20,
+  "number": 0
+}
+```
+
+**`POST /transactions`** — `notes` es opcional
+```json
+// Enviar
+{
+  "categoryId": "uuid",
+  "amount": "25.50",
+  "type": "EXPENSE",
+  "transactionDate": "2025-06-15",
+  "description": "Almuerzo",
+  "notes": "Con el equipo"
+}
+
+// Recibir — mismo formato que un ítem del listado
+```
+
+**`PUT /transactions/{id}`** — mismo cuerpo que POST
+**`DELETE /transactions/{id}`** — sin cuerpo, responde `204`
+
+---
+
+### Resumen financiero (`/summary`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/summary` | Balance, totales por tipo y desglose por categoría del período |
+| GET | `/summary/trends` | Comparativa entre períodos — *pendiente* |
+
+**`GET /summary`** — parámetros opcionales; sin ellos usa el mes actual
+
+| Parámetro | Descripción | Ejemplo |
+|---|---|---|
+| `from` | Fecha inicio | `2025-06-01` |
+| `to` | Fecha fin | `2025-06-30` |
+
+```json
+// Recibir
+{
+  "totalIncome": "1500.00",
+  "totalExpense": "900.00",
+  "balance": "600.00",
+  "byCategory": [
+    { "categoryId": "uuid", "categoryName": "Alimentación", "total": "300.00" }
+  ]
+}
+```
+
+---
+
+### Presupuestos (`/budgets`) — *pendiente*
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/budgets` | Listar presupuestos activos |
@@ -284,7 +454,10 @@ Meta de ahorro con un objetivo monetario y fecha límite opcional.
 | DELETE | `/budgets/{id}` | Eliminar |
 | GET | `/budgets/{id}/status` | Gasto acumulado vs límite en el período actual |
 
-### Metas de ahorro (`/goals`)
+---
+
+### Metas de ahorro (`/goals`) — *pendiente*
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/goals` | Listar metas |
@@ -292,10 +465,32 @@ Meta de ahorro con un objetivo monetario y fecha límite opcional.
 | PUT | `/goals/{id}` | Actualizar (incluye progreso) |
 | DELETE | `/goals/{id}` | Eliminar |
 
-### RAG (`/rag`)
+---
+
+### Búsqueda semántica (`/rag`)
+
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/rag/search` | Búsqueda semántica en el historial del usuario. Body: `{ query, limit }` |
+| POST | `/rag/search` | Buscar transacciones por similitud semántica en el historial del usuario |
+
+**`POST /rag/search`**
+```json
+// Enviar
+{ "query": "café o bebidas", "limit": 5 }
+
+// Recibir
+[
+  {
+    "id": "uuid",
+    "description": "Café en Starbucks",
+    "notes": null,
+    "amount": "5.00",
+    "type": "EXPENSE",
+    "transactionDate": "2025-06-10",
+    "categoryName": "Alimentación"
+  }
+]
+```
 
 ---
 
