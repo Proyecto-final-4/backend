@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TransactionService {
@@ -30,6 +31,7 @@ public class TransactionService {
         this.embeddingService = embeddingService;
     }
 
+    @Transactional(readOnly = true)
     public Page<TransactionResponse> getAll(
             String email,
             String type,
@@ -42,19 +44,17 @@ public class TransactionService {
         TransactionType parsedType = type != null ? parseType(type) : null;
 
         Specification<Transaction> spec =
-                Specification.where(TransactionSpecifications.hasUserId(user.getId()))
-                        .and(
-                                parsedType != null
-                                        ? TransactionSpecifications.hasType(parsedType)
-                                        : null)
-                        .and(
-                                categoryId != null
-                                        ? TransactionSpecifications.hasCategoryId(categoryId)
-                                        : null)
-                        .and(
-                                from != null && to != null
-                                        ? TransactionSpecifications.transactionDateBetween(from, to)
-                                        : null);
+                Specification.where(TransactionSpecifications.hasUserId(user.getId()));
+
+        if (parsedType != null) {
+            spec = spec.and(TransactionSpecifications.hasType(parsedType));
+        }
+        if (categoryId != null) {
+            spec = spec.and(TransactionSpecifications.hasCategoryId(categoryId));
+        }
+        if (from != null && to != null) {
+            spec = spec.and(TransactionSpecifications.transactionDateBetween(from, to));
+        }
 
         return transactionRepository.findAll(spec, pageable).map(this::toResponse);
     }
@@ -66,6 +66,7 @@ public class TransactionService {
         return toResponse(transaction);
     }
 
+    @Transactional
     public TransactionResponse create(String email, TransactionRequest request) {
         User user = findUserByEmail(email);
         Category category = findCategoryForUser(request.categoryId(), user);
@@ -81,12 +82,13 @@ public class TransactionService {
 
         transactionRepository.save(transaction);
 
-        transaction.setEmbedding(embeddingService.generateEmbedding(transaction.getDescription()));
-        transactionRepository.save(transaction);
+        float[] embedding = embeddingService.generateEmbedding(transaction.getDescription());
+        transactionRepository.updateEmbedding(transaction.getId(), buildVectorString(embedding));
 
         return toResponse(transaction);
     }
 
+    @Transactional
     public TransactionResponse update(String email, UUID id, TransactionRequest request) {
         User user = findUserByEmail(email);
         Transaction transaction = findTransactionById(id);
@@ -106,13 +108,18 @@ public class TransactionService {
         }
         if (request.description() != null) {
             transaction.setDescription(request.description());
-            transaction.setEmbedding(embeddingService.generateEmbedding(request.description()));
         }
         if (request.notes() != null) {
             transaction.setNotes(request.notes());
         }
 
         transactionRepository.save(transaction);
+
+        if (request.description() != null) {
+            float[] embedding = embeddingService.generateEmbedding(request.description());
+            transactionRepository.updateEmbedding(transaction.getId(), buildVectorString(embedding));
+        }
+
         return toResponse(transaction);
     }
 
@@ -160,6 +167,16 @@ public class TransactionService {
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid transaction type: " + type);
         }
+    }
+
+    private String buildVectorString(float[] embedding) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < embedding.length; i++) {
+            sb.append(embedding[i]);
+            if (i < embedding.length - 1) sb.append(",");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private TransactionResponse toResponse(Transaction transaction) {

@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -42,7 +43,7 @@ public class Transaction extends BaseEntity {
     @Column(length = 500, nullable = true)
     private String notes;
 
-    @Column(columnDefinition = "vector(1536)", nullable = true)
+    @Transient
     private float[] embedding;
 
     public User getUser() {
