@@ -117,7 +117,8 @@ public class TransactionService {
 
         if (request.description() != null) {
             float[] embedding = embeddingService.generateEmbedding(request.description());
-            transactionRepository.updateEmbedding(transaction.getId(), buildVectorString(embedding));
+            transactionRepository.updateEmbedding(
+                    transaction.getId(), buildVectorString(embedding));
         }
 
         return toResponse(transaction);

@@ -38,7 +38,8 @@ public class UserSeeder implements ApplicationRunner {
         }
 
         if (password == null || password.isBlank()) {
-            log.warn("SEED_USER_EMAIL is set but SEED_USER_PASSWORD is missing — skipping user seeding");
+            log.warn(
+                    "SEED_USER_EMAIL is set but SEED_USER_PASSWORD is missing — skipping user seeding");
             return;
         }
 

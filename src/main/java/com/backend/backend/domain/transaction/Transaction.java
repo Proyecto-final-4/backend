@@ -43,8 +43,7 @@ public class Transaction extends BaseEntity {
     @Column(length = 500, nullable = true)
     private String notes;
 
-    @Transient
-    private float[] embedding;
+    @Transient private float[] embedding;
 
     public User getUser() {
         return user;

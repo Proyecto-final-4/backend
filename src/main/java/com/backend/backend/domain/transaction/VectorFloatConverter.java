@@ -6,9 +6,8 @@ import jakarta.persistence.Converter;
 /**
  * Maps PostgreSQL vector(1536) ↔ float[] in Java.
  *
- * PostgreSQL vector values are serialized as strings: [1.0,2.0,...,1536.0]
- * JDBC getString() on a vector column returns this representation,
- * which we parse back into float[].
+ * <p>PostgreSQL vector values are serialized as strings: [1.0,2.0,...,1536.0] JDBC getString() on a
+ * vector column returns this representation, which we parse back into float[].
  */
 @Converter
 public class VectorFloatConverter implements AttributeConverter<float[], String> {
