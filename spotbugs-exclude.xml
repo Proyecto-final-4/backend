@@ -30,4 +30,14 @@
     <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
     <Package name="~com\.backend\.backend\.security.*"/>
   </Match>
+
+  <!--
+    VectorFloatConverter.convertToEntityAttribute intentionally returns null when
+    the database column is NULL — this is the correct JPA AttributeConverter contract.
+    Returning new float[0] would misrepresent a missing embedding as an empty one.
+  -->
+  <Match>
+    <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
+    <Class name="com.backend.backend.domain.transaction.VectorFloatConverter"/>
+  </Match>
 </FindBugsFilter>

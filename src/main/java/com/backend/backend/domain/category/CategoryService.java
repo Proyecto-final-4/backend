@@ -144,9 +144,7 @@ public class CategoryService {
 
         if (category.isSystem()) {
             throw new RuntimeException(
-                    "System category '"
-                            + category.getName()
-                            + "' cannot be deleted.");
+                    "System category '" + category.getName() + "' cannot be deleted.");
         }
         if (category.getUser() == null || !category.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("Category does not belong to user.");
