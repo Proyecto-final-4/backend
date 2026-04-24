@@ -13,6 +13,8 @@ public interface TransactionRepository
 
     boolean existsByIdAndUserId(UUID id, UUID userId);
 
+    boolean existsByCategoryId(UUID categoryId);
+
     @Modifying
     @Query(
             value = "UPDATE transactions SET embedding = CAST(:embedding AS vector) WHERE id = :id",

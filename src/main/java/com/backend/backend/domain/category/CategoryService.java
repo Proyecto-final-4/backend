@@ -1,5 +1,6 @@
 package com.backend.backend.domain.category;
 
+import com.backend.backend.domain.transaction.TransactionRepository;
 import com.backend.backend.domain.user.UserRepository;
 import java.util.List;
 import java.util.UUID;
@@ -10,10 +11,15 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
-    public CategoryService(CategoryRepository categoryRepository, UserRepository userRepository) {
+    public CategoryService(
+            CategoryRepository categoryRepository,
+            UserRepository userRepository,
+            TransactionRepository transactionRepository) {
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     public List<CategoryResponse> getAll(String email) {
@@ -32,6 +38,17 @@ public class CategoryService {
                 userRepository
                         .findByEmail(email)
                         .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (categoryRepository.existsByNameIgnoreCaseAndUserIsNull(request.name())) {
+            throw new RuntimeException(
+                    "A system category named '"
+                            + request.name()
+                            + "' already exists. Use it directly instead of creating a duplicate.");
+        }
+        if (categoryRepository.existsByNameIgnoreCaseAndUserId(request.name(), user.getId())) {
+            throw new RuntimeException(
+                    "You already have a category named '" + request.name() + "'.");
+        }
 
         CategoryType type;
         try {
@@ -72,10 +89,14 @@ public class CategoryService {
                         .findById(id)
                         .orElseThrow(() -> new RuntimeException("Category not found"));
 
-        if (category.isSystem()
-                || category.getUser() == null
-                || !category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Category does not belong to user");
+        if (category.isSystem()) {
+            throw new RuntimeException(
+                    "System category '"
+                            + category.getName()
+                            + "' cannot be modified. Create a personal category instead.");
+        }
+        if (category.getUser() == null || !category.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Category does not belong to user.");
         }
 
         if (request.name() != null) {
@@ -121,10 +142,20 @@ public class CategoryService {
                         .findById(id)
                         .orElseThrow(() -> new RuntimeException("Category not found"));
 
-        if (category.isSystem()
-                || category.getUser() == null
-                || !category.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Category does not belong to user");
+        if (category.isSystem()) {
+            throw new RuntimeException(
+                    "System category '"
+                            + category.getName()
+                            + "' cannot be deleted.");
+        }
+        if (category.getUser() == null || !category.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Category does not belong to user.");
+        }
+        if (transactionRepository.existsByCategoryId(id)) {
+            throw new RuntimeException(
+                    "Cannot delete category '"
+                            + category.getName()
+                            + "' because it has associated transactions. Reassign them to another category first.");
         }
 
         categoryRepository.delete(category);

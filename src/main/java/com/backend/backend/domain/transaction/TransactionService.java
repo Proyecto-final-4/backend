@@ -2,6 +2,7 @@ package com.backend.backend.domain.transaction;
 
 import com.backend.backend.domain.category.Category;
 import com.backend.backend.domain.category.CategoryRepository;
+import com.backend.backend.domain.category.CategoryType;
 import com.backend.backend.domain.user.User;
 import com.backend.backend.domain.user.UserRepository;
 import java.time.LocalDate;
@@ -70,12 +71,14 @@ public class TransactionService {
     public TransactionResponse create(String email, TransactionRequest request) {
         User user = findUserByEmail(email);
         Category category = findCategoryForUser(request.categoryId(), user);
+        TransactionType transactionType = parseType(request.type());
+        validateCategoryMatchesTransactionType(category, transactionType);
 
         Transaction transaction = new Transaction();
         transaction.setUser(user);
         transaction.setCategory(category);
         transaction.setAmount(request.amount());
-        transaction.setType(parseType(request.type()));
+        transaction.setType(transactionType);
         transaction.setTransactionDate(request.transactionDate());
         transaction.setDescription(request.description());
         transaction.setNotes(request.notes());
@@ -95,7 +98,11 @@ public class TransactionService {
         validateOwnership(transaction, user);
 
         if (request.categoryId() != null) {
-            transaction.setCategory(findCategoryForUser(request.categoryId(), user));
+            Category newCategory = findCategoryForUser(request.categoryId(), user);
+            TransactionType newType =
+                    request.type() != null ? parseType(request.type()) : transaction.getType();
+            validateCategoryMatchesTransactionType(newCategory, newType);
+            transaction.setCategory(newCategory);
         }
         if (request.amount() != null) {
             transaction.setAmount(request.amount());
@@ -159,6 +166,24 @@ public class TransactionService {
     private void validateOwnership(Transaction transaction, User user) {
         if (!transaction.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("Transaction does not belong to user");
+        }
+    }
+
+    private void validateCategoryMatchesTransactionType(
+            Category category, TransactionType transactionType) {
+        CategoryType catType = category.getType();
+        if (catType == CategoryType.BOTH) return;
+        if (transactionType == TransactionType.INCOME && catType != CategoryType.INCOME) {
+            throw new RuntimeException(
+                    "Category '"
+                            + category.getName()
+                            + "' is for expenses and cannot be used for an income transaction.");
+        }
+        if (transactionType == TransactionType.EXPENSE && catType != CategoryType.EXPENSE) {
+            throw new RuntimeException(
+                    "Category '"
+                            + category.getName()
+                            + "' is for income and cannot be used for an expense transaction.");
         }
     }
 
