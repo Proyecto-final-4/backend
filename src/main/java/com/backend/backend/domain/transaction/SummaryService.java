@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SummaryService {
@@ -22,6 +23,7 @@ public class SummaryService {
         this.userRepository = userRepository;
     }
 
+    @Transactional(readOnly = true)
     public SummaryResponse getSummary(String email, LocalDate from, LocalDate to) {
         var user =
                 userRepository
