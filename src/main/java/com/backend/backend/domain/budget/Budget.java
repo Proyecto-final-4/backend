@@ -26,20 +26,20 @@ public class Budget extends BaseEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(name = "amount_limit", nullable = false, precision = 19, scale = 2)
     private BigDecimal amountLimit;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BudgetPeriod period;
 
-    @Column(nullable = false)
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(nullable = true)
+    @Column(name = "end_date", nullable = true)
     private LocalDate endDate;
 
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
     public User getUser() {
