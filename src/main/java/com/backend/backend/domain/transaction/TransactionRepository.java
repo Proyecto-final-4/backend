@@ -1,5 +1,7 @@
 package com.backend.backend.domain.transaction;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +16,21 @@ public interface TransactionRepository
     boolean existsByIdAndUserId(UUID id, UUID userId);
 
     boolean existsByCategoryId(UUID categoryId);
+
+    @Query(
+            """
+            SELECT COALESCE(SUM(t.amount), 0)
+            FROM Transaction t
+            WHERE t.user.id = :userId
+              AND t.category.id = :categoryId
+              AND t.type = com.backend.backend.domain.transaction.TransactionType.EXPENSE
+              AND t.transactionDate BETWEEN :from AND :to
+            """)
+    BigDecimal sumExpenseAmountByUserCategoryAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("categoryId") UUID categoryId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
 
     @Modifying
     @Query(
