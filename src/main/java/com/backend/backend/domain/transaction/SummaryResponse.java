@@ -7,9 +7,12 @@ public record SummaryResponse(
         BigDecimal totalIncome,
         BigDecimal totalExpense,
         BigDecimal balance,
-        List<CategorySummary> byCategory) {
+        BigDecimal savingsRate,
+        List<CategorySummary> incomeByCategory,
+        List<CategorySummary> expenseByCategory) {
 
     public SummaryResponse {
-        byCategory = byCategory == null ? List.of() : List.copyOf(byCategory);
+        incomeByCategory = incomeByCategory == null ? List.of() : List.copyOf(incomeByCategory);
+        expenseByCategory = expenseByCategory == null ? List.of() : List.copyOf(expenseByCategory);
     }
 }
