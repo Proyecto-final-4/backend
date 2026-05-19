@@ -4,6 +4,7 @@ import com.backend.backend.domain.user.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SummaryService {
 
     private static final int PERCENTAGE_SCALE = 4;
+    private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
@@ -73,9 +75,22 @@ public class SummaryService {
         BigDecimal totalIncome = sumByType(transactions, TransactionType.INCOME);
         BigDecimal totalExpense = sumByType(transactions, TransactionType.EXPENSE);
         BigDecimal balance = totalIncome.subtract(totalExpense);
-        List<CategorySummary> byCategory = groupByCategory(transactions);
+        List<CategorySummary> incomeByCategory =
+                withPercentages(
+                        groupByCategoryForType(transactions, TransactionType.INCOME), totalIncome);
+        List<CategorySummary> expenseByCategory =
+                withPercentages(
+                        groupByCategoryForType(transactions, TransactionType.EXPENSE),
+                        totalExpense);
+        BigDecimal savingsRate = calculateSavingsRate(balance, totalIncome);
 
-        return new SummaryResponse(totalIncome, totalExpense, balance, byCategory);
+        return new SummaryResponse(
+                totalIncome,
+                totalExpense,
+                balance,
+                savingsRate,
+                incomeByCategory,
+                expenseByCategory);
     }
 
     private TrendsDiff buildTrendsDiff(SummaryResponse current, SummaryResponse previous) {
@@ -89,8 +104,8 @@ public class SummaryService {
 
     private List<CategoryTrendDiff> buildCategoryTrendDiffs(
             SummaryResponse current, SummaryResponse previous) {
-        Map<UUID, CategorySummary> currentById = indexByCategoryId(current.byCategory());
-        Map<UUID, CategorySummary> previousById = indexByCategoryId(previous.byCategory());
+        Map<UUID, CategorySummary> currentById = indexByCategoryId(allCategories(current));
+        Map<UUID, CategorySummary> previousById = indexByCategoryId(allCategories(previous));
 
         Set<UUID> categoryIds = new HashSet<>();
         categoryIds.addAll(currentById.keySet());
@@ -120,6 +135,13 @@ public class SummaryService {
                 .toList();
     }
 
+    private List<CategorySummary> allCategories(SummaryResponse summary) {
+        List<CategorySummary> merged = new ArrayList<>();
+        merged.addAll(summary.incomeByCategory());
+        merged.addAll(summary.expenseByCategory());
+        return merged;
+    }
+
     private Map<UUID, CategorySummary> indexByCategoryId(List<CategorySummary> summaries) {
         Map<UUID, CategorySummary> indexed = new HashMap<>();
         for (CategorySummary summary : summaries) {
@@ -142,8 +164,46 @@ public class SummaryService {
             return null;
         }
         return current.subtract(previous)
-                .multiply(BigDecimal.valueOf(100))
+                .multiply(ONE_HUNDRED)
                 .divide(previous, PERCENTAGE_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateSavingsRate(BigDecimal balance, BigDecimal totalIncome) {
+        if (totalIncome.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        return balance.multiply(ONE_HUNDRED)
+                .divide(totalIncome, PERCENTAGE_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private List<CategorySummary> withPercentages(
+            List<CategorySummary> categories, BigDecimal typeTotal) {
+        if (typeTotal.compareTo(BigDecimal.ZERO) == 0) {
+            return categories.stream()
+                    .map(
+                            category ->
+                                    new CategorySummary(
+                                            category.categoryId(),
+                                            category.categoryName(),
+                                            category.total(),
+                                            BigDecimal.ZERO.setScale(
+                                                    PERCENTAGE_SCALE, RoundingMode.HALF_UP)))
+                    .toList();
+        }
+        return categories.stream()
+                .map(
+                        category ->
+                                new CategorySummary(
+                                        category.categoryId(),
+                                        category.categoryName(),
+                                        category.total(),
+                                        category.total()
+                                                .multiply(ONE_HUNDRED)
+                                                .divide(
+                                                        typeTotal,
+                                                        PERCENTAGE_SCALE,
+                                                        RoundingMode.HALF_UP)))
+                .toList();
     }
 
     private BigDecimal sumByType(List<Transaction> transactions, TransactionType type) {
@@ -153,22 +213,33 @@ public class SummaryService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private List<CategorySummary> groupByCategory(List<Transaction> transactions) {
+    private List<CategorySummary> groupByCategoryForType(
+            List<Transaction> transactions, TransactionType type) {
         Map<CategoryKey, BigDecimal> totals =
                 transactions.stream()
+                        .filter(transaction -> transaction.getType() == type)
                         .collect(
                                 Collectors.groupingBy(
-                                        t ->
+                                        transaction ->
                                                 new CategoryKey(
-                                                        t.getCategory().getId(),
-                                                        t.getCategory().getName()),
+                                                        transaction.getCategory().getId(),
+                                                        transaction.getCategory().getName()),
                                         Collectors.reducing(
                                                 BigDecimal.ZERO,
                                                 Transaction::getAmount,
                                                 BigDecimal::add)));
 
         return totals.entrySet().stream()
-                .map(e -> new CategorySummary(e.getKey().id(), e.getKey().name(), e.getValue()))
+                .map(
+                        entry ->
+                                new CategorySummary(
+                                        entry.getKey().id(),
+                                        entry.getKey().name(),
+                                        entry.getValue(),
+                                        BigDecimal.ZERO))
+                .sorted(
+                        (left, right) ->
+                                left.categoryName().compareToIgnoreCase(right.categoryName()))
                 .toList();
     }
 
