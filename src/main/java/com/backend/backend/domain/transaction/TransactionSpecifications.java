@@ -20,6 +20,14 @@ public class TransactionSpecifications {
         return (root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId);
     }
 
+    public static Specification<Transaction> transactionDateFrom(LocalDate from) {
+        return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("transactionDate"), from);
+    }
+
+    public static Specification<Transaction> transactionDateTo(LocalDate to) {
+        return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("transactionDate"), to);
+    }
+
     public static Specification<Transaction> transactionDateBetween(LocalDate from, LocalDate to) {
         return (root, query, cb) -> cb.between(root.get("transactionDate"), from, to);
     }

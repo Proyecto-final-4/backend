@@ -55,6 +55,10 @@ public class TransactionService {
         }
         if (from != null && to != null) {
             spec = spec.and(TransactionSpecifications.transactionDateBetween(from, to));
+        } else if (from != null) {
+            spec = spec.and(TransactionSpecifications.transactionDateFrom(from));
+        } else if (to != null) {
+            spec = spec.and(TransactionSpecifications.transactionDateTo(to));
         }
 
         return transactionRepository.findAll(spec, pageable).map(this::toResponse);
