@@ -19,14 +19,18 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.email()).isPresent()) {
+        String email = request.email() == null ? "" : request.email().trim();
+        String password = request.password() == null ? "" : request.password();
+        String name = request.name() == null ? "" : request.name().trim();
+
+        if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already registered");
         }
 
         User user = new User();
-        user.setName(request.name());
-        user.setEmail(request.email());
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setName(name);
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(password));
 
         userRepository.save(user);
 
@@ -35,12 +39,15 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        String email = request.email() == null ? "" : request.email().trim();
+        String password = request.password() == null ? "" : request.password();
+
         User user =
                 userRepository
-                        .findByEmail(request.email())
+                        .findByEmail(email)
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid password");
         }
 
