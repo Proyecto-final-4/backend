@@ -27,4 +27,14 @@ public class SummaryController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return summaryService.getSummary(email, from, to);
     }
+
+    @GetMapping("/trends")
+    public TrendsResponse getTrends(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentFrom,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentTo,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate previousFrom,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate previousTo) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return summaryService.getTrends(email, currentFrom, currentTo, previousFrom, previousTo);
+    }
 }
