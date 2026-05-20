@@ -32,15 +32,36 @@ public class EnvironmentStartupValidator implements ApplicationRunner {
         validateRequired("SPRING_CLOUD_AWS_ENDPOINT", "spring.cloud.aws.endpoint", errors);
         validateRequired(
                 "SPRING_CLOUD_AWS_REGION_STATIC", "spring.cloud.aws.region.static", errors);
+        validateRequired("APP_ENCRYPTION_KEY", "app.encryption.key", errors);
 
         String openAiApiKey = environment.getProperty("spring.ai.openai.api-key", "");
         if ("replace_with_real_openai_key".equals(openAiApiKey)) {
             errors.add("SPRING_AI_OPENAI_API_KEY uses a placeholder value.");
         }
 
+        String encryptionKey = environment.getProperty("app.encryption.key", "");
+        if ("replace_with_base64_32bytes_key".equals(encryptionKey)) {
+            errors.add(
+                    "APP_ENCRYPTION_KEY uses a placeholder value. Generate one with: openssl rand"
+                            + " -base64 32");
+        } else if (!encryptionKey.isBlank()) {
+            try {
+                byte[] keyBytes = java.util.Base64.getDecoder().decode(encryptionKey);
+                if (keyBytes.length != 32) {
+                    errors.add(
+                            "APP_ENCRYPTION_KEY must decode to exactly 32 bytes (256 bits). Got "
+                                    + keyBytes.length
+                                    + " bytes.");
+                }
+            } catch (IllegalArgumentException e) {
+                errors.add("APP_ENCRYPTION_KEY is not valid Base64.");
+            }
+        }
+
         if (!errors.isEmpty()) {
             throw new IllegalStateException(
-                    "Environment validation failed. Fix the following values before starting the server: "
+                    "Environment validation failed. Fix the following values before starting the"
+                            + " server: "
                             + String.join(" | ", errors));
         }
     }

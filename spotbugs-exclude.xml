@@ -4,21 +4,23 @@
     JPA entities and Spring-managed beans require direct getters/setters over managed
     object references. Defensive copying is not applicable and would break the
     persistence context or Spring's dependency injection. EI_EXPOSE_REP / EI_EXPOSE_REP2
-    are false positives for all domain and security Spring components.
+    are false positives for all domain, security and shared Spring components.
   -->
   <Match>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
-    <Package name="~com\.backend\.backend\.(domain|security).*"/>
+    <Package name="~com\.backend\.backend\.(domain|security|shared).*"/>
   </Match>
 
   <!--
     Services intentionally throw RuntimeException (e.g. EntityNotFoundException,
     IllegalArgumentException) as part of the application's error-handling strategy.
     These are mapped to HTTP responses by GlobalExceptionHandler.
+    EncryptionService and EncryptionDataMigrationRunner also use RuntimeException wrappers
+    for checked crypto exceptions that cannot propagate through the call stack.
   -->
   <Match>
     <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
-    <Package name="~com\.backend\.backend\.domain.*"/>
+    <Package name="~com\.backend\.backend\.(domain|shared).*"/>
   </Match>
 
   <!--
