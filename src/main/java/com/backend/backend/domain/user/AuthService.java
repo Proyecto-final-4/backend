@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
+    private static final String INVALID_CREDENTIALS = "Invalid credentials";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -42,13 +44,9 @@ public class AuthService {
         String email = request.email() == null ? "" : request.email().trim();
         String password = request.password() == null ? "" : request.password();
 
-        User user =
-                userRepository
-                        .findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new RuntimeException(INVALID_CREDENTIALS);
         }
 
         String token = jwtService.generateToken(user.getEmail());
