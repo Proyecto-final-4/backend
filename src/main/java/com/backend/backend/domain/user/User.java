@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 @Table(name = "users")
 public class User extends BaseEntity {
 
-    /** Valor cifrado con AES-256-GCM. La búsqueda por igualdad usa {@code email_hmac}. */
+    /** AES-256-GCM encrypted value. Equality lookups use {@code email_hmac}. */
     @Convert(converter = StringEncryptedConverter.class)
     @Column(nullable = false, columnDefinition = "TEXT")
     private String email;
@@ -23,7 +23,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String name;
 
-    /** HMAC-SHA256 del email normalizado. Permite búsquedas deterministas sobre email cifrado. */
+    /** HMAC-SHA256 of the normalized email. Enables deterministic lookups on encrypted email. */
     @Column(name = "email_hmac", nullable = false, unique = true, length = 64)
     private String emailHmac;
 

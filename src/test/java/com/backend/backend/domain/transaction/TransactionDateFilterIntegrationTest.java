@@ -55,8 +55,7 @@ class TransactionDateFilterIntegrationTest {
 
     @Autowired private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private com.backend.backend.shared.crypto.EncryptionService encryptionService;
+    @Autowired private com.backend.backend.shared.crypto.EncryptionService encryptionService;
 
     private User testUser;
     private Category testCategory;

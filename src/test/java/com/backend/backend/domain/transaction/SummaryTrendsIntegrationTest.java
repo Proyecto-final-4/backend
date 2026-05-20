@@ -48,8 +48,7 @@ class SummaryTrendsIntegrationTest {
 
     @Autowired private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private com.backend.backend.shared.crypto.EncryptionService encryptionService;
+    @Autowired private com.backend.backend.shared.crypto.EncryptionService encryptionService;
 
     private User userOne;
     private User userTwo;

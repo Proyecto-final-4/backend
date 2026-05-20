@@ -46,8 +46,7 @@ class SummaryIntegrationTest {
 
     @Autowired private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private com.backend.backend.shared.crypto.EncryptionService encryptionService;
+    @Autowired private com.backend.backend.shared.crypto.EncryptionService encryptionService;
 
     private User user;
     private String token;
