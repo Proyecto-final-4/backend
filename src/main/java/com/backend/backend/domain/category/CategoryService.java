@@ -1,9 +1,7 @@
 package com.backend.backend.domain.category;
 
 import com.backend.backend.domain.transaction.TransactionRepository;
-import com.backend.backend.domain.user.User;
-import com.backend.backend.domain.user.UserRepository;
-import com.backend.backend.shared.crypto.EncryptionService;
+import com.backend.backend.shared.CurrentUserService;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -12,30 +10,27 @@ import org.springframework.stereotype.Service;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
-    private final EncryptionService encryptionService;
+    private final CurrentUserService currentUserService;
 
     public CategoryService(
             CategoryRepository categoryRepository,
-            UserRepository userRepository,
             TransactionRepository transactionRepository,
-            EncryptionService encryptionService) {
+            CurrentUserService currentUserService) {
         this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
-        this.encryptionService = encryptionService;
+        this.currentUserService = currentUserService;
     }
 
     public List<CategoryResponse> getAll(String email) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
         return categoryRepository.findByUserIsNullOrUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public CategoryResponse create(String email, CategoryRequest request) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
 
         if (categoryRepository.existsByNameIgnoreCaseAndUserIsNull(request.name())) {
             throw new RuntimeException(
@@ -77,7 +72,7 @@ public class CategoryService {
     }
 
     public CategoryResponse update(String email, UUID id, CategoryRequest request) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
 
         Category category =
                 categoryRepository
@@ -127,7 +122,7 @@ public class CategoryService {
     }
 
     public void delete(String email, UUID id) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
 
         Category category =
                 categoryRepository
@@ -150,12 +145,6 @@ public class CategoryService {
         }
 
         categoryRepository.delete(category);
-    }
-
-    private User findUserByEmail(String email) {
-        return userRepository
-                .findByEmailHmac(encryptionService.hmac(email))
-                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private CategoryResponse toResponse(Category category) {

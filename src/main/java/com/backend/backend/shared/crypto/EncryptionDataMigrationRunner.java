@@ -1,11 +1,16 @@
 package com.backend.backend.shared.crypto;
 
+import com.backend.backend.domain.user.User;
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.structures.Queue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,17 +44,28 @@ public class EncryptionDataMigrationRunner implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        var users = userRepository.findAll();
+        Queue<User> queue = new Queue<>();
         int migrated = 0;
+        int pageNumber = 0;
+        Page<User> page;
 
-        for (var user : users) {
-            String correctHmac = encryptionService.hmac(user.getEmail());
-            if (!correctHmac.equals(user.getEmailHmac())) {
-                user.setEmailHmac(correctHmac);
-                userRepository.save(user);
-                migrated++;
+        do {
+            Pageable pageable = PageRequest.of(pageNumber, 50);
+            page = userRepository.findAll(pageable);
+            for (User user : page.getContent()) {
+                queue.enqueue(user);
             }
-        }
+            while (!queue.isEmpty()) {
+                User user = queue.dequeue();
+                String correctHmac = encryptionService.hmac(user.getEmail());
+                if (!correctHmac.equals(user.getEmailHmac())) {
+                    user.setEmailHmac(correctHmac);
+                    userRepository.save(user);
+                    migrated++;
+                }
+            }
+            pageNumber++;
+        } while (page.hasNext());
 
         if (migrated > 0) {
             log.info(

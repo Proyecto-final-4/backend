@@ -1,7 +1,6 @@
 package com.backend.backend.domain.transaction;
 
-import com.backend.backend.domain.user.UserRepository;
-import com.backend.backend.shared.crypto.EncryptionService;
+import com.backend.backend.shared.CurrentUserService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -13,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,24 +22,17 @@ public class SummaryService {
     private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
     private final TransactionRepository transactionRepository;
-    private final UserRepository userRepository;
-    private final EncryptionService encryptionService;
+    private final CurrentUserService currentUserService;
 
     public SummaryService(
-            TransactionRepository transactionRepository,
-            UserRepository userRepository,
-            EncryptionService encryptionService) {
+            TransactionRepository transactionRepository, CurrentUserService currentUserService) {
         this.transactionRepository = transactionRepository;
-        this.userRepository = userRepository;
-        this.encryptionService = encryptionService;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(readOnly = true)
     public SummaryResponse getSummary(String email, LocalDate from, LocalDate to) {
-        var user =
-                userRepository
-                        .findByEmailHmac(encryptionService.hmac(email))
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+        var user = currentUserService.resolve(email);
 
         LocalDate effectiveFrom = from != null ? from : LocalDate.now().withDayOfMonth(1);
         LocalDate effectiveTo =
@@ -57,10 +48,7 @@ public class SummaryService {
             LocalDate currentTo,
             LocalDate previousFrom,
             LocalDate previousTo) {
-        var user =
-                userRepository
-                        .findByEmailHmac(encryptionService.hmac(email))
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+        var user = currentUserService.resolve(email);
 
         UUID userId = user.getId();
         SummaryResponse current = buildSummaryForPeriod(userId, currentFrom, currentTo);
@@ -71,22 +59,46 @@ public class SummaryService {
     }
 
     private SummaryResponse buildSummaryForPeriod(UUID userId, LocalDate from, LocalDate to) {
-        Specification<Transaction> spec =
-                Specification.where(TransactionSpecifications.hasUserId(userId))
-                        .and(TransactionSpecifications.transactionDateBetween(from, to));
+        return buildSummaryOptimized(userId, from, to);
+    }
 
-        List<Transaction> transactions = transactionRepository.findAll(spec);
+    /**
+     * Optimized version: delegates aggregations to the database instead of loading all transactions
+     * into memory and grouping with JVM streams.
+     */
+    private SummaryResponse buildSummaryOptimized(UUID userId, LocalDate from, LocalDate to) {
+        // Totals by type (INCOME / EXPENSE) from the database
+        List<Object[]> typeTotals = transactionRepository.sumAmountByTypeForUser(userId, from, to);
 
-        BigDecimal totalIncome = sumByType(transactions, TransactionType.INCOME);
-        BigDecimal totalExpense = sumByType(transactions, TransactionType.EXPENSE);
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpense = BigDecimal.ZERO;
+        for (Object[] row : typeTotals) {
+            TransactionType type = (TransactionType) row[0];
+            BigDecimal sum = (BigDecimal) row[1];
+            if (type == TransactionType.INCOME) totalIncome = sum;
+            else if (type == TransactionType.EXPENSE) totalExpense = sum;
+        }
+
+        // Category and type breakdown from the database
+        List<Object[]> categoryRows =
+                transactionRepository.sumAmountByCategoryAndTypeForUser(userId, from, to);
+
+        List<CategorySummary> rawIncome = new ArrayList<>();
+        List<CategorySummary> rawExpense = new ArrayList<>();
+        for (Object[] row : categoryRows) {
+            UUID categoryId = (UUID) row[0];
+            String categoryName = (String) row[1];
+            TransactionType type = (TransactionType) row[2];
+            BigDecimal sum = (BigDecimal) row[3];
+            CategorySummary entry =
+                    new CategorySummary(categoryId, categoryName, sum, BigDecimal.ZERO);
+            if (type == TransactionType.INCOME) rawIncome.add(entry);
+            else if (type == TransactionType.EXPENSE) rawExpense.add(entry);
+        }
+
         BigDecimal balance = totalIncome.subtract(totalExpense);
-        List<CategorySummary> incomeByCategory =
-                withPercentages(
-                        groupByCategoryForType(transactions, TransactionType.INCOME), totalIncome);
-        List<CategorySummary> expenseByCategory =
-                withPercentages(
-                        groupByCategoryForType(transactions, TransactionType.EXPENSE),
-                        totalExpense);
+        List<CategorySummary> incomeByCategory = withPercentages(rawIncome, totalIncome);
+        List<CategorySummary> expenseByCategory = withPercentages(rawExpense, totalExpense);
         BigDecimal savingsRate = calculateSavingsRate(balance, totalIncome);
 
         return new SummaryResponse(

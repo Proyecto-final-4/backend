@@ -1,8 +1,6 @@
 package com.backend.backend.domain.savingsgoal;
 
-import com.backend.backend.domain.user.User;
-import com.backend.backend.domain.user.UserRepository;
-import com.backend.backend.shared.crypto.EncryptionService;
+import com.backend.backend.shared.CurrentUserService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -13,21 +11,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class SavingsGoalService {
 
     private final SavingsGoalRepository savingsGoalRepository;
-    private final UserRepository userRepository;
-    private final EncryptionService encryptionService;
+    private final CurrentUserService currentUserService;
 
     public SavingsGoalService(
-            SavingsGoalRepository savingsGoalRepository,
-            UserRepository userRepository,
-            EncryptionService encryptionService) {
+            SavingsGoalRepository savingsGoalRepository, CurrentUserService currentUserService) {
         this.savingsGoalRepository = savingsGoalRepository;
-        this.userRepository = userRepository;
-        this.encryptionService = encryptionService;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(readOnly = true)
     public List<GoalResponse> getAll(String email) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
         return savingsGoalRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
@@ -35,7 +29,7 @@ public class SavingsGoalService {
 
     @Transactional
     public GoalResponse create(String email, GoalRequest request) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
         validateCreateRequest(request);
 
         SavingsGoal goal = new SavingsGoal();
@@ -53,7 +47,7 @@ public class SavingsGoalService {
 
     @Transactional
     public GoalResponse update(String email, UUID id, GoalUpdateRequest request) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
         SavingsGoal goal = findGoalForUser(id, user.getId());
 
         if (request.name() != null) {
@@ -91,15 +85,9 @@ public class SavingsGoalService {
 
     @Transactional
     public void delete(String email, UUID id) {
-        var user = findUserByEmail(email);
+        var user = currentUserService.resolve(email);
         SavingsGoal goal = findGoalForUser(id, user.getId());
         savingsGoalRepository.delete(goal);
-    }
-
-    private User findUserByEmail(String email) {
-        return userRepository
-                .findByEmailHmac(encryptionService.hmac(email))
-                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private SavingsGoal findGoalForUser(UUID id, UUID userId) {

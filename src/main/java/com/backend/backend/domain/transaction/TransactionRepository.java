@@ -32,6 +32,32 @@ public interface TransactionRepository
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
 
+    @Query(
+            """
+            SELECT t.type, SUM(t.amount)
+            FROM Transaction t
+            WHERE t.user.id = :userId
+              AND t.transactionDate BETWEEN :startDate AND :endDate
+            GROUP BY t.type
+            """)
+    List<Object[]> sumAmountByTypeForUser(
+            @Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+    @Query(
+            """
+            SELECT t.category.id, t.category.name, t.type, SUM(t.amount), COUNT(t)
+            FROM Transaction t
+            WHERE t.user.id = :userId
+              AND t.transactionDate BETWEEN :startDate AND :endDate
+            GROUP BY t.category.id, t.category.name, t.type
+            """)
+    List<Object[]> sumAmountByCategoryAndTypeForUser(
+            @Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
     @Modifying
     @Query(
             value = "UPDATE transactions SET embedding = CAST(:embedding AS vector) WHERE id = :id",

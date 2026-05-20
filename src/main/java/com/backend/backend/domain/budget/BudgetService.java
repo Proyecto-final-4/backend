@@ -5,8 +5,7 @@ import com.backend.backend.domain.category.CategoryRepository;
 import com.backend.backend.domain.category.CategoryType;
 import com.backend.backend.domain.transaction.TransactionRepository;
 import com.backend.backend.domain.user.User;
-import com.backend.backend.domain.user.UserRepository;
-import com.backend.backend.shared.crypto.EncryptionService;
+import com.backend.backend.shared.CurrentUserService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -20,26 +19,23 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
-    private final EncryptionService encryptionService;
+    private final CurrentUserService currentUserService;
 
     public BudgetService(
             BudgetRepository budgetRepository,
             CategoryRepository categoryRepository,
-            UserRepository userRepository,
             TransactionRepository transactionRepository,
-            EncryptionService encryptionService) {
+            CurrentUserService currentUserService) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
-        this.encryptionService = encryptionService;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(readOnly = true)
     public List<BudgetResponse> getAll(String email) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         return budgetRepository.findByUser_IdOrderByCreatedAtDesc(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
@@ -47,7 +43,7 @@ public class BudgetService {
 
     @Transactional
     public BudgetResponse create(String email, BudgetRequest request) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         validateCreateRequest(request);
 
         Category category = resolveExpenseCategory(request.categoryId(), user);
@@ -67,7 +63,7 @@ public class BudgetService {
 
     @Transactional
     public BudgetResponse update(String email, UUID id, BudgetRequest request) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Budget budget = findBudgetForUser(id, user);
 
         if (request.categoryId() != null) {
@@ -98,14 +94,14 @@ public class BudgetService {
 
     @Transactional
     public void delete(String email, UUID id) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Budget budget = findBudgetForUser(id, user);
         budgetRepository.delete(budget);
     }
 
     @Transactional(readOnly = true)
     public BudgetStatusResponse getStatus(String email, UUID id) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Budget budget = findBudgetForUser(id, user);
         return buildStatus(budget, user.getId());
     }
@@ -198,12 +194,6 @@ public class BudgetService {
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid budget period: " + period);
         }
-    }
-
-    private User findUserByEmail(String email) {
-        return userRepository
-                .findByEmailHmac(encryptionService.hmac(email))
-                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private Budget findBudgetForUser(UUID id, User user) {

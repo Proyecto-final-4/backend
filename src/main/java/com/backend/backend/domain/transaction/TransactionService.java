@@ -4,8 +4,7 @@ import com.backend.backend.domain.category.Category;
 import com.backend.backend.domain.category.CategoryRepository;
 import com.backend.backend.domain.category.CategoryType;
 import com.backend.backend.domain.user.User;
-import com.backend.backend.domain.user.UserRepository;
-import com.backend.backend.shared.crypto.EncryptionService;
+import com.backend.backend.shared.CurrentUserService;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -19,21 +18,18 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final EmbeddingService embeddingService;
-    private final EncryptionService encryptionService;
+    private final CurrentUserService currentUserService;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             CategoryRepository categoryRepository,
-            UserRepository userRepository,
             EmbeddingService embeddingService,
-            EncryptionService encryptionService) {
+            CurrentUserService currentUserService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
-        this.userRepository = userRepository;
         this.embeddingService = embeddingService;
-        this.encryptionService = encryptionService;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +40,7 @@ public class TransactionService {
             LocalDate from,
             LocalDate to,
             Pageable pageable) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
 
         TransactionType parsedType = type != null ? parseType(type) : null;
 
@@ -69,7 +65,7 @@ public class TransactionService {
     }
 
     public TransactionResponse getById(String email, UUID id) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Transaction transaction = findTransactionById(id);
         validateOwnership(transaction, user);
         return toResponse(transaction);
@@ -77,7 +73,7 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse create(String email, TransactionRequest request) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Category category = findCategoryForUser(request.categoryId(), user);
         TransactionType transactionType = parseType(request.type());
         validateCategoryMatchesTransactionType(category, transactionType);
@@ -101,7 +97,7 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse update(String email, UUID id, TransactionRequest request) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Transaction transaction = findTransactionById(id);
         validateOwnership(transaction, user);
 
@@ -140,16 +136,10 @@ public class TransactionService {
     }
 
     public void delete(String email, UUID id) {
-        User user = findUserByEmail(email);
+        User user = currentUserService.resolve(email);
         Transaction transaction = findTransactionById(id);
         validateOwnership(transaction, user);
         transactionRepository.delete(transaction);
-    }
-
-    private User findUserByEmail(String email) {
-        return userRepository
-                .findByEmailHmac(encryptionService.hmac(email))
-                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private Transaction findTransactionById(UUID id) {

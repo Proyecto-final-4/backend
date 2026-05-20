@@ -1,7 +1,6 @@
 package com.backend.backend;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.backend.backend.shared.structures.Stack;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,7 +22,7 @@ public class EnvironmentStartupValidator implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        List<String> errors = new ArrayList<>();
+        Stack<String> errors = new Stack<>();
 
         validateRequired("SPRING_DATASOURCE_URL", "spring.datasource.url", errors);
         validateRequired("SPRING_DATASOURCE_USERNAME", "spring.datasource.username", errors);
@@ -36,40 +35,41 @@ public class EnvironmentStartupValidator implements ApplicationRunner {
 
         String openAiApiKey = environment.getProperty("spring.ai.openai.api-key", "");
         if ("replace_with_real_openai_key".equals(openAiApiKey)) {
-            errors.add("SPRING_AI_OPENAI_API_KEY uses a placeholder value.");
+            errors.push("SPRING_AI_OPENAI_API_KEY uses a placeholder value.");
         }
 
         String encryptionKey = environment.getProperty("app.encryption.key", "");
         if ("replace_with_base64_32bytes_key".equals(encryptionKey)) {
-            errors.add(
+            errors.push(
                     "APP_ENCRYPTION_KEY uses a placeholder value. Generate one with: openssl rand"
                             + " -base64 32");
         } else if (!encryptionKey.isBlank()) {
             try {
                 byte[] keyBytes = java.util.Base64.getDecoder().decode(encryptionKey);
                 if (keyBytes.length != 32) {
-                    errors.add(
+                    errors.push(
                             "APP_ENCRYPTION_KEY must decode to exactly 32 bytes (256 bits). Got "
                                     + keyBytes.length
                                     + " bytes.");
                 }
             } catch (IllegalArgumentException e) {
-                errors.add("APP_ENCRYPTION_KEY is not valid Base64.");
+                errors.push("APP_ENCRYPTION_KEY is not valid Base64.");
             }
         }
 
         if (!errors.isEmpty()) {
+            // Bottom-to-top preserves validation order (first check first in message).
             throw new IllegalStateException(
                     "Environment validation failed. Fix the following values before starting the"
                             + " server: "
-                            + String.join(" | ", errors));
+                            + String.join(" | ", errors.toListBottomToTop()));
         }
     }
 
-    private void validateRequired(String envName, String propertyName, List<String> errors) {
+    private void validateRequired(String envName, String propertyName, Stack<String> errors) {
         String value = environment.getProperty(propertyName, "").trim();
         if (value.isBlank()) {
-            errors.add(envName + " (mapped from " + propertyName + ") is missing.");
+            errors.push(envName + " (mapped from " + propertyName + ") is missing.");
         }
     }
 }
