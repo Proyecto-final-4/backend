@@ -9,7 +9,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-@SpringBootTest(properties = "app.env.validation.enabled=false")
+@SpringBootTest(
+        properties = {
+            "app.env.validation.enabled=false",
+            "app.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        })
 class InfrastructureSmokeTest {
 
     @Autowired private JdbcTemplate jdbcTemplate;

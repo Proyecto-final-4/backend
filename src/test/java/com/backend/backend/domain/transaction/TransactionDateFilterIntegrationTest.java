@@ -32,6 +32,7 @@ import org.springframework.test.web.servlet.MvcResult;
         properties = {
             "app.env.validation.enabled=false",
             "app.jwt.secret-key=01234567890123456789012345678901",
+            "app.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         })
 @AutoConfigureMockMvc
 class TransactionDateFilterIntegrationTest {
@@ -54,14 +55,19 @@ class TransactionDateFilterIntegrationTest {
 
     @Autowired private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.backend.backend.shared.crypto.EncryptionService encryptionService;
+
     private User testUser;
     private Category testCategory;
     private final List<UUID> transactionIds = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
+        String dateFilterEmail = "date-filter-" + UUID.randomUUID() + "@test.com";
         testUser = new User();
-        testUser.setEmail("date-filter-" + UUID.randomUUID() + "@test.com");
+        testUser.setEmail(dateFilterEmail);
+        testUser.setEmailHmac(encryptionService.hmac(dateFilterEmail));
         testUser.setName("Date Filter Test");
         testUser.setPasswordHash(passwordEncoder.encode("password"));
         testUser = userRepository.save(testUser);

@@ -30,7 +30,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @SpringBootTest(
         properties = {
             "app.env.validation.enabled=false",
-            "app.jwt.secret-key=01234567890123456789012345678901"
+            "app.jwt.secret-key=01234567890123456789012345678901",
+            "app.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         })
 @AutoConfigureMockMvc
 class SavingsGoalIntegrationTest {
@@ -46,6 +47,9 @@ class SavingsGoalIntegrationTest {
     @Autowired private SavingsGoalRepository savingsGoalRepository;
 
     @Autowired private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.backend.backend.shared.crypto.EncryptionService encryptionService;
 
     private User userOne;
     private User userTwo;
@@ -213,6 +217,7 @@ class SavingsGoalIntegrationTest {
     private User saveUser(String email) {
         User user = new User();
         user.setEmail(email);
+        user.setEmailHmac(encryptionService.hmac(email));
         user.setName("Goals Test User");
         user.setPasswordHash(passwordEncoder.encode("password"));
         return userRepository.save(user);

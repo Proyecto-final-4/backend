@@ -35,7 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest(
         properties = {
             "app.env.validation.enabled=false",
-            "app.jwt.secret-key=01234567890123456789012345678901"
+            "app.jwt.secret-key=01234567890123456789012345678901",
+            "app.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         })
 @AutoConfigureMockMvc
 @Transactional
@@ -54,6 +55,9 @@ class BudgetIntegrationTest {
     @Autowired private BudgetRepository budgetRepository;
 
     @Autowired private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.backend.backend.shared.crypto.EncryptionService encryptionService;
 
     private User userOne;
     private User userTwo;
@@ -232,6 +236,7 @@ class BudgetIntegrationTest {
     private User createUser(String email) {
         User user = new User();
         user.setEmail(email);
+        user.setEmailHmac(encryptionService.hmac(email));
         user.setName("Test User");
         user.setPasswordHash(passwordEncoder.encode("password123"));
         return userRepository.save(user);

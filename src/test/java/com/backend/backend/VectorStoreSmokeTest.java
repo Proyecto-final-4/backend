@@ -12,7 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
 
-@SpringBootTest(properties = "app.env.validation.enabled=false")
+@SpringBootTest(
+        properties = {
+            "app.env.validation.enabled=false",
+            "app.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        })
 class VectorStoreSmokeTest {
 
     @Autowired private VectorStore vectorStore;
