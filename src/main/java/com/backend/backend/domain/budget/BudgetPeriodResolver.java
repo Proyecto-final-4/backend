@@ -10,6 +10,13 @@ final class BudgetPeriodResolver {
     private BudgetPeriodResolver() {}
 
     static Optional<PeriodWindow> resolve(Budget budget, LocalDate today) {
+        if (budget == null || today == null || budget.getPeriod() == null) {
+            return Optional.empty();
+        }
+        if (!BudgetPeriodRegistry.isSupported(budget.getPeriod())) {
+            return Optional.empty();
+        }
+
         if (today.isBefore(budget.getStartDate())) {
             return Optional.empty();
         }
