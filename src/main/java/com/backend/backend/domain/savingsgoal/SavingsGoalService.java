@@ -2,6 +2,7 @@ package com.backend.backend.domain.savingsgoal;
 
 import com.backend.backend.domain.user.User;
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.crypto.EncryptionService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -13,11 +14,15 @@ public class SavingsGoalService {
 
     private final SavingsGoalRepository savingsGoalRepository;
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
 
     public SavingsGoalService(
-            SavingsGoalRepository savingsGoalRepository, UserRepository userRepository) {
+            SavingsGoalRepository savingsGoalRepository,
+            UserRepository userRepository,
+            EncryptionService encryptionService) {
         this.savingsGoalRepository = savingsGoalRepository;
         this.userRepository = userRepository;
+        this.encryptionService = encryptionService;
     }
 
     @Transactional(readOnly = true)
@@ -93,7 +98,7 @@ public class SavingsGoalService {
 
     private User findUserByEmail(String email) {
         return userRepository
-                .findByEmail(email)
+                .findByEmailHmac(encryptionService.hmac(email))
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 

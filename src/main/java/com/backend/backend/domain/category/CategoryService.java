@@ -1,7 +1,9 @@
 package com.backend.backend.domain.category;
 
 import com.backend.backend.domain.transaction.TransactionRepository;
+import com.backend.backend.domain.user.User;
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.crypto.EncryptionService;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -12,32 +14,28 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final EncryptionService encryptionService;
 
     public CategoryService(
             CategoryRepository categoryRepository,
             UserRepository userRepository,
-            TransactionRepository transactionRepository) {
+            TransactionRepository transactionRepository,
+            EncryptionService encryptionService) {
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.encryptionService = encryptionService;
     }
 
     public List<CategoryResponse> getAll(String email) {
-        var user =
-                userRepository
-                        .findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
-
+        var user = findUserByEmail(email);
         return categoryRepository.findByUserIsNullOrUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public CategoryResponse create(String email, CategoryRequest request) {
-        var user =
-                userRepository
-                        .findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+        var user = findUserByEmail(email);
 
         if (categoryRepository.existsByNameIgnoreCaseAndUserIsNull(request.name())) {
             throw new RuntimeException(
@@ -79,10 +77,7 @@ public class CategoryService {
     }
 
     public CategoryResponse update(String email, UUID id, CategoryRequest request) {
-        var user =
-                userRepository
-                        .findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+        var user = findUserByEmail(email);
 
         Category category =
                 categoryRepository
@@ -132,10 +127,7 @@ public class CategoryService {
     }
 
     public void delete(String email, UUID id) {
-        var user =
-                userRepository
-                        .findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+        var user = findUserByEmail(email);
 
         Category category =
                 categoryRepository
@@ -153,10 +145,17 @@ public class CategoryService {
             throw new RuntimeException(
                     "Cannot delete category '"
                             + category.getName()
-                            + "' because it has associated transactions. Reassign them to another category first.");
+                            + "' because it has associated transactions. Reassign them to another"
+                            + " category first.");
         }
 
         categoryRepository.delete(category);
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository
+                .findByEmailHmac(encryptionService.hmac(email))
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private CategoryResponse toResponse(Category category) {

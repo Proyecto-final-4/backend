@@ -2,7 +2,9 @@ package com.backend.backend.domain.savingsgoal;
 
 import com.backend.backend.domain.user.User;
 import com.backend.backend.shared.BaseEntity;
+import com.backend.backend.shared.crypto.StringEncryptedConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -19,10 +21,12 @@ public class SavingsGoal extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 100)
+    @Convert(converter = StringEncryptedConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String name;
 
-    @Column(length = 500, nullable = true)
+    @Convert(converter = StringEncryptedConverter.class)
+    @Column(nullable = true, columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false, precision = 19, scale = 2)

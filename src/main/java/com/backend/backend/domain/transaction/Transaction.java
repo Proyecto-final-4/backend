@@ -3,7 +3,9 @@ package com.backend.backend.domain.transaction;
 import com.backend.backend.domain.category.Category;
 import com.backend.backend.domain.user.User;
 import com.backend.backend.shared.BaseEntity;
+import com.backend.backend.shared.crypto.StringEncryptedConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -37,10 +39,12 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false)
     private LocalDate transactionDate;
 
-    @Column(nullable = false, length = 500)
+    @Convert(converter = StringEncryptedConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 500, nullable = true)
+    @Convert(converter = StringEncryptedConverter.class)
+    @Column(nullable = true, columnDefinition = "TEXT")
     private String notes;
 
     @Transient private float[] embedding;

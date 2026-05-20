@@ -6,6 +6,7 @@ import com.backend.backend.domain.category.CategoryType;
 import com.backend.backend.domain.transaction.TransactionRepository;
 import com.backend.backend.domain.user.User;
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.crypto.EncryptionService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -21,16 +22,19 @@ public class BudgetService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final EncryptionService encryptionService;
 
     public BudgetService(
             BudgetRepository budgetRepository,
             CategoryRepository categoryRepository,
             UserRepository userRepository,
-            TransactionRepository transactionRepository) {
+            TransactionRepository transactionRepository,
+            EncryptionService encryptionService) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.encryptionService = encryptionService;
     }
 
     @Transactional(readOnly = true)
@@ -198,7 +202,7 @@ public class BudgetService {
 
     private User findUserByEmail(String email) {
         return userRepository
-                .findByEmail(email)
+                .findByEmailHmac(encryptionService.hmac(email))
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 

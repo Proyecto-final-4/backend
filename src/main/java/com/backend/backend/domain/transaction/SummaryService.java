@@ -1,6 +1,7 @@
 package com.backend.backend.domain.transaction;
 
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.crypto.EncryptionService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -24,18 +25,22 @@ public class SummaryService {
 
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
 
     public SummaryService(
-            TransactionRepository transactionRepository, UserRepository userRepository) {
+            TransactionRepository transactionRepository,
+            UserRepository userRepository,
+            EncryptionService encryptionService) {
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
+        this.encryptionService = encryptionService;
     }
 
     @Transactional(readOnly = true)
     public SummaryResponse getSummary(String email, LocalDate from, LocalDate to) {
         var user =
                 userRepository
-                        .findByEmail(email)
+                        .findByEmailHmac(encryptionService.hmac(email))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
         LocalDate effectiveFrom = from != null ? from : LocalDate.now().withDayOfMonth(1);
@@ -54,7 +59,7 @@ public class SummaryService {
             LocalDate previousTo) {
         var user =
                 userRepository
-                        .findByEmail(email)
+                        .findByEmailHmac(encryptionService.hmac(email))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
         UUID userId = user.getId();

@@ -5,6 +5,7 @@ import com.backend.backend.domain.category.CategoryRepository;
 import com.backend.backend.domain.category.CategoryType;
 import com.backend.backend.domain.user.User;
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.crypto.EncryptionService;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -20,16 +21,19 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final EmbeddingService embeddingService;
+    private final EncryptionService encryptionService;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             CategoryRepository categoryRepository,
             UserRepository userRepository,
-            EmbeddingService embeddingService) {
+            EmbeddingService embeddingService,
+            EncryptionService encryptionService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.embeddingService = embeddingService;
+        this.encryptionService = encryptionService;
     }
 
     @Transactional(readOnly = true)
@@ -144,7 +148,7 @@ public class TransactionService {
 
     private User findUserByEmail(String email) {
         return userRepository
-                .findByEmail(email)
+                .findByEmailHmac(encryptionService.hmac(email))
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 

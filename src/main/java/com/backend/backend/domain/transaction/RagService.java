@@ -1,6 +1,7 @@
 package com.backend.backend.domain.transaction;
 
 import com.backend.backend.domain.user.UserRepository;
+import com.backend.backend.shared.crypto.EncryptionService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,20 +13,23 @@ public class RagService {
     private final TransactionRepository transactionRepository;
     private final EmbeddingService embeddingService;
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
 
     public RagService(
             TransactionRepository transactionRepository,
             EmbeddingService embeddingService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            EncryptionService encryptionService) {
         this.transactionRepository = transactionRepository;
         this.embeddingService = embeddingService;
         this.userRepository = userRepository;
+        this.encryptionService = encryptionService;
     }
 
     public List<RagSearchResponse> search(String email, RagSearchRequest request) {
         var user =
                 userRepository
-                        .findByEmail(email)
+                        .findByEmailHmac(encryptionService.hmac(email))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
         float[] embedding = embeddingService.generateEmbedding(request.query());
