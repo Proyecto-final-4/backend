@@ -12,13 +12,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Servicio de cifrado simétrico AES-256-GCM para datos en reposo. Proporciona además HMAC-SHA256
- * determinista para campos que requieren búsqueda por igualdad (ej. email).
+ * AES-256-GCM symmetric encryption service for data at rest. Also provides deterministic
+ * HMAC-SHA256 for fields that require equality lookups (e.g. email).
  *
- * <p>Formato almacenado: {@code enc:v1:<Base64(IV || cifrado || tag)>}
+ * <p>Stored format: {@code enc:v1:<Base64(IV || ciphertext || tag)>}
  *
- * <p>El prefijo {@code enc:v1:} permite detectar si un valor ya fue cifrado, lo que facilita la
- * migración de datos existentes en texto plano.
+ * <p>The {@code enc:v1:} prefix makes it possible to detect whether a value is already encrypted,
+ * which simplifies migration of existing plaintext data.
  */
 @Service
 public class EncryptionService {
@@ -37,16 +37,16 @@ public class EncryptionService {
         this.keyBytes = Base64.getDecoder().decode(base64Key);
         if (this.keyBytes.length != 32) {
             throw new IllegalArgumentException(
-                    "APP_ENCRYPTION_KEY debe ser de 256 bits (32 bytes codificados en Base64).");
+                    "APP_ENCRYPTION_KEY must be 256 bits (32 bytes encoded as Base64).");
         }
         this.secretKey = new SecretKeySpec(this.keyBytes, "AES");
     }
 
     /**
-     * Cifra un texto plano con AES-256-GCM usando un IV aleatorio por valor.
+     * Encrypts plaintext with AES-256-GCM using a random IV per value.
      *
-     * @param plaintext texto a cifrar; si es {@code null} retorna {@code null}
-     * @return cadena con prefijo {@code enc:v1:} seguido del payload Base64
+     * @param plaintext text to encrypt; returns {@code null} if {@code null}
+     * @return string with {@code enc:v1:} prefix followed by the Base64 payload
      */
     public String encrypt(String plaintext) {
         if (plaintext == null) {
@@ -67,18 +67,18 @@ public class EncryptionService {
 
             return PREFIX + Base64.getEncoder().encodeToString(combined);
         } catch (Exception e) {
-            throw new RuntimeException("Error al cifrar el valor.", e);
+            throw new RuntimeException("Failed to encrypt value.", e);
         }
     }
 
     /**
-     * Descifra un valor previamente cifrado con {@link #encrypt(String)}.
+     * Decrypts a value previously encrypted with {@link #encrypt(String)}.
      *
-     * <p>Si el valor no comienza con el prefijo {@code enc:v1:} se asume que es texto plano
-     * (migración de datos existentes) y se retorna tal cual.
+     * <p>If the value does not start with the {@code enc:v1:} prefix it is assumed to be plaintext
+     * (migration of existing data) and is returned as-is.
      *
-     * @param encryptedData valor cifrado o texto plano; si es {@code null} retorna {@code null}
-     * @return texto plano descifrado
+     * @param encryptedData encrypted or plaintext value; returns {@code null} if {@code null}
+     * @return decrypted plaintext
      */
     public String decrypt(String encryptedData) {
         if (encryptedData == null) {
@@ -88,8 +88,7 @@ public class EncryptionService {
             return encryptedData;
         }
         try {
-            byte[] combined =
-                    Base64.getDecoder().decode(encryptedData.substring(PREFIX.length()));
+            byte[] combined = Base64.getDecoder().decode(encryptedData.substring(PREFIX.length()));
             byte[] iv = Arrays.copyOfRange(combined, 0, GCM_IV_LENGTH);
             byte[] ciphertext = Arrays.copyOfRange(combined, GCM_IV_LENGTH, combined.length);
 
@@ -99,16 +98,16 @@ public class EncryptionService {
             byte[] plaintext = cipher.doFinal(ciphertext);
             return new String(plaintext, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new RuntimeException("Error al descifrar el valor.", e);
+            throw new RuntimeException("Failed to decrypt value.", e);
         }
     }
 
     /**
-     * Calcula HMAC-SHA256 del dato normalizado (minúsculas + trim). Se usa para campos con
-     * restricción UNIQUE que necesitan búsqueda determinista en la base de datos.
+     * Computes HMAC-SHA256 of normalized data (lowercase + trim). Used for fields with a UNIQUE
+     * constraint that require deterministic database lookups.
      *
-     * @param data texto a firmar; si es {@code null} retorna {@code null}
-     * @return Base64 del HMAC (44 chars)
+     * @param data text to sign; returns {@code null} if {@code null}
+     * @return Base64-encoded HMAC (44 chars)
      */
     public String hmac(String data) {
         if (data == null) {
@@ -117,11 +116,10 @@ public class EncryptionService {
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);
             mac.init(new SecretKeySpec(keyBytes, HMAC_SHA256));
-            byte[] result =
-                    mac.doFinal(data.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
+            byte[] result = mac.doFinal(data.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(result);
         } catch (Exception e) {
-            throw new RuntimeException("Error al calcular HMAC.", e);
+            throw new RuntimeException("Failed to compute HMAC.", e);
         }
     }
 }

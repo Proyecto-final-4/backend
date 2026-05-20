@@ -10,18 +10,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Migra en caliente los registros de usuarios que fueron creados antes de activar el cifrado:
+ * Hot-migrates user records created before encryption was enabled:
  *
  * <ul>
- *   <li>Recalcula {@code email_hmac} con la clave de cifrado real (reemplaza el SHA-256 sin clave
- *       que genera el script SQL de la migración V6 como bootstrap).
- *   <li>Deja que {@link StringEncryptedConverter} cifre el campo {@code email} en la próxima
- *       escritura. El conversor detecta valores sin el prefijo {@code enc:v1:} y los trata como
- *       texto plano.
+ *   <li>Recalculates {@code email_hmac} with the real encryption key (replaces the keyless SHA-256
+ *       produced by the V6 migration SQL script as bootstrap).
+ *   <li>Lets {@link StringEncryptedConverter} encrypt the {@code email} field on the next write.
+ *       The converter treats values without the {@code enc:v1:} prefix as plaintext.
  * </ul>
  *
- * <p>Se ejecuta una sola vez: si {@code email_hmac} ya coincide con {@code hmac(email)} el
- * registro no se toca.
+ * <p>Runs once: if {@code email_hmac} already matches {@code hmac(email)} the record is skipped.
  */
 @Component
 @Order(10)
@@ -55,11 +53,10 @@ public class EncryptionDataMigrationRunner implements ApplicationRunner {
 
         if (migrated > 0) {
             log.info(
-                    "Migración de cifrado completada: {} usuario(s) actualizados con email_hmac"
-                            + " correcto.",
+                    "Encryption migration completed: {} user(s) updated with correct email_hmac.",
                     migrated);
         } else {
-            log.debug("Migración de cifrado: todos los email_hmac ya están actualizados.");
+            log.debug("Encryption migration: all email_hmac values are already up to date.");
         }
     }
 }

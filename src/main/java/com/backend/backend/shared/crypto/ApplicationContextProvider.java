@@ -6,9 +6,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 /**
- * Puente estático hacia el {@link ApplicationContext} de Spring. Permite que componentes no
- * gestionados por Spring (como los {@code AttributeConverter} de JPA) accedan a beans del
- * contenedor durante la conversión de columnas.
+ * Static bridge to Spring's {@link ApplicationContext}. Allows components not managed by Spring
+ * (such as JPA {@code AttributeConverter}s) to access beans from the container during column
+ * conversion.
  */
 @Component
 public class ApplicationContextProvider implements ApplicationContextAware {

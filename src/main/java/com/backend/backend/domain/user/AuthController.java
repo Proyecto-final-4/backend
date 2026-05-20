@@ -23,8 +23,8 @@ public class AuthController {
     }
 
     /**
-     * Retorna la clave pública RSA-2048 (SPKI/Base64) para que el cliente cifre las credenciales
-     * antes de enviarlas. La clave es efímera y se regenera en cada arranque.
+     * Returns the RSA-2048 public key (SPKI/Base64) so the client can encrypt credentials before
+     * sending them. The key is ephemeral and regenerated on every startup.
      */
     @GetMapping("/public-key")
     @ResponseStatus(HttpStatus.OK)

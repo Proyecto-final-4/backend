@@ -13,14 +13,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Servicio RSA-2048 para cifrado asimétrico del payload de login y registro.
+ * RSA-2048 service for asymmetric encryption of login and registration payloads.
  *
- * <p>Genera un par de claves efímero al arrancar la aplicación. La clave pública se expone en
- * {@code GET /auth/public-key} (Base64 SPKI). El frontend la usa con la Web Crypto API
- * (RSA-OAEP + SHA-256) para cifrar las credenciales antes de enviarlas.
+ * <p>Generates an ephemeral key pair when the application starts. The public key is exposed at
+ * {@code GET /auth/public-key} (Base64 SPKI). The frontend uses it with the Web Crypto API
+ * (RSA-OAEP + SHA-256) to encrypt credentials before sending them.
  *
- * <p>Las claves son volátiles: se regeneran en cada reinicio, por lo que el frontend siempre debe
- * obtener la clave pública antes de cada login.
+ * <p>Keys are volatile: they are regenerated on every restart, so the frontend must always fetch
+ * the public key before each login.
  */
 @Service
 public class RsaKeyService {
@@ -37,15 +37,15 @@ public class RsaKeyService {
             KeyPairGenerator generator = KeyPairGenerator.getInstance(ALGORITHM);
             generator.initialize(KEY_SIZE);
             this.keyPair = generator.generateKeyPair();
-            log.info("Par de claves RSA-{} generado correctamente para cifrado de credenciales.", KEY_SIZE);
+            log.info("RSA-{} key pair generated successfully for credential encryption.", KEY_SIZE);
         } catch (Exception e) {
-            throw new RuntimeException("No se pudo generar el par de claves RSA.", e);
+            throw new RuntimeException("Failed to generate RSA key pair.", e);
         }
     }
 
     /**
-     * Retorna la clave pública en formato SPKI codificada en Base64 estándar (sin saltos de línea).
-     * Compatible con {@code SubtleCrypto.importKey("spki", ...)} de la Web Crypto API.
+     * Returns the public key as standard Base64-encoded SPKI (no line breaks). Compatible with
+     * {@code SubtleCrypto.importKey("spki", ...)} from the Web Crypto API.
      */
     public String getPublicKeyBase64() {
         RSAPublicKey pub = (RSAPublicKey) keyPair.getPublic();
@@ -53,30 +53,31 @@ public class RsaKeyService {
     }
 
     /**
-     * Descifra un valor cifrado por el cliente con RSA-OAEP + SHA-256 (MGF1/SHA-256).
+     * Decrypts a value encrypted by the client with RSA-OAEP + SHA-256 (MGF1/SHA-256).
      *
-     * @param base64Ciphertext payload Base64 recibido del cliente
-     * @return texto plano descifrado
+     * @param base64Ciphertext Base64 payload received from the client
+     * @return decrypted plaintext
      */
     public String decrypt(String base64Ciphertext) {
         if (base64Ciphertext == null || base64Ciphertext.isBlank()) {
-            throw new IllegalArgumentException("El valor cifrado no puede estar vacío.");
+            throw new IllegalArgumentException("Encrypted value cannot be empty.");
         }
         try {
             byte[] cipherBytes = Base64.getDecoder().decode(base64Ciphertext);
 
-            OAEPParameterSpec oaepSpec = new OAEPParameterSpec(
-                    "SHA-256",
-                    "MGF1",
-                    new MGF1ParameterSpec("SHA-256"),
-                    PSource.PSpecified.DEFAULT);
+            OAEPParameterSpec oaepSpec =
+                    new OAEPParameterSpec(
+                            "SHA-256",
+                            "MGF1",
+                            new MGF1ParameterSpec("SHA-256"),
+                            PSource.PSpecified.DEFAULT);
 
             Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate(), oaepSpec);
 
             return new String(cipher.doFinal(cipherBytes), java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new RuntimeException("Error al descifrar credencial RSA.", e);
+            throw new RuntimeException("Failed to decrypt RSA credential.", e);
         }
     }
 }

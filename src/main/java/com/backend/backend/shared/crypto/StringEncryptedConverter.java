@@ -4,10 +4,10 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
 /**
- * Conversor JPA que cifra campos {@code String} con AES-256-GCM al persistirlos y los descifra al
- * leerlos. Delega en {@link EncryptionService} obtenido del contexto de Spring.
+ * JPA converter that encrypts {@code String} fields with AES-256-GCM on persist and decrypts on
+ * load. Delegates to {@link EncryptionService} obtained from the Spring context.
  *
- * <p>Uso en entidades: {@code @Convert(converter = StringEncryptedConverter.class)}
+ * <p>Entity usage: {@code @Convert(converter = StringEncryptedConverter.class)}
  */
 @Converter
 public class StringEncryptedConverter implements AttributeConverter<String, String> {
