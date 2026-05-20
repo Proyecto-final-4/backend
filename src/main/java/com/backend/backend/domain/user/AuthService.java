@@ -1,6 +1,7 @@
 package com.backend.backend.domain.user;
 
 import com.backend.backend.security.JwtService;
+import com.backend.backend.shared.crypto.EncryptionService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,12 +13,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EncryptionService encryptionService;
 
     public AuthService(
-            UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            EncryptionService encryptionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.encryptionService = encryptionService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -25,13 +31,15 @@ public class AuthService {
         String password = request.password() == null ? "" : request.password();
         String name = request.name() == null ? "" : request.name().trim();
 
-        if (userRepository.findByEmail(email).isPresent()) {
+        String emailHmac = encryptionService.hmac(email);
+        if (userRepository.findByEmailHmac(emailHmac).isPresent()) {
             throw new RuntimeException("Email already registered");
         }
 
         User user = new User();
         user.setName(name);
         user.setEmail(email);
+        user.setEmailHmac(emailHmac);
         user.setPasswordHash(passwordEncoder.encode(password));
 
         userRepository.save(user);
@@ -44,7 +52,8 @@ public class AuthService {
         String email = request.email() == null ? "" : request.email().trim();
         String password = request.password() == null ? "" : request.password();
 
-        User user = userRepository.findByEmail(email).orElse(null);
+        String emailHmac = encryptionService.hmac(email);
+        User user = userRepository.findByEmailHmac(emailHmac).orElse(null);
         if (user == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException(INVALID_CREDENTIALS);
         }

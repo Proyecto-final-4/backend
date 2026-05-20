@@ -1,7 +1,9 @@
 package com.backend.backend.domain.user;
 
 import com.backend.backend.shared.BaseEntity;
+import com.backend.backend.shared.crypto.StringEncryptedConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -9,14 +11,21 @@ import jakarta.persistence.Table;
 @Table(name = "users")
 public class User extends BaseEntity {
 
-    @Column(nullable = false, unique = true, length = 255)
+    /** Valor cifrado con AES-256-GCM. La búsqueda por igualdad usa {@code email_hmac}. */
+    @Convert(converter = StringEncryptedConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String email;
 
     @Column(nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(nullable = false, length = 100)
+    @Convert(converter = StringEncryptedConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String name;
+
+    /** HMAC-SHA256 del email normalizado. Permite búsquedas deterministas sobre email cifrado. */
+    @Column(name = "email_hmac", nullable = false, unique = true, length = 64)
+    private String emailHmac;
 
     public String getEmail() {
         return email;
@@ -40,5 +49,13 @@ public class User extends BaseEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getEmailHmac() {
+        return emailHmac;
+    }
+
+    public void setEmailHmac(String emailHmac) {
+        this.emailHmac = emailHmac;
     }
 }

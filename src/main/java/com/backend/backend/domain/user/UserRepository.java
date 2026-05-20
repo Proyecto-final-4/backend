@@ -6,5 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    Optional<User> findByEmail(String email);
+    /**
+     * Busca un usuario por el HMAC de su email. Usar {@link
+     * com.backend.backend.shared.crypto.EncryptionService#hmac(String)} para calcular el valor.
+     */
+    Optional<User> findByEmailHmac(String emailHmac);
 }

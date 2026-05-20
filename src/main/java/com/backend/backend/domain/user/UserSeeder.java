@@ -1,5 +1,6 @@
 package com.backend.backend.domain.user;
 
+import com.backend.backend.shared.crypto.EncryptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ public class UserSeeder implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EncryptionService encryptionService;
 
     @Value("${SEED_USER_EMAIL:}")
     private String email;
@@ -25,9 +27,13 @@ public class UserSeeder implements ApplicationRunner {
     @Value("${SEED_USER_NAME:}")
     private String name;
 
-    public UserSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserSeeder(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            EncryptionService encryptionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.encryptionService = encryptionService;
     }
 
     @Override
@@ -39,7 +45,8 @@ public class UserSeeder implements ApplicationRunner {
 
         if (password == null || password.isBlank()) {
             log.warn(
-                    "SEED_USER_EMAIL is set but SEED_USER_PASSWORD is missing — skipping user seeding");
+                    "SEED_USER_EMAIL is set but SEED_USER_PASSWORD is missing — skipping user"
+                            + " seeding");
             return;
         }
 
@@ -47,13 +54,15 @@ public class UserSeeder implements ApplicationRunner {
             name = email;
         }
 
-        if (userRepository.findByEmail(email).isPresent()) {
+        String emailHmac = encryptionService.hmac(email);
+        if (userRepository.findByEmailHmac(emailHmac).isPresent()) {
             log.info("Seed user '{}' already exists — nothing to do", email);
             return;
         }
 
         User user = new User();
         user.setEmail(email);
+        user.setEmailHmac(emailHmac);
         user.setName(name);
         user.setPasswordHash(passwordEncoder.encode(password));
         userRepository.save(user);

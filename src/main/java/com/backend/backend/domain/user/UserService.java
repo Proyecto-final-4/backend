@@ -1,5 +1,6 @@
 package com.backend.backend.domain.user;
 
+import com.backend.backend.shared.crypto.EncryptionService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -8,16 +9,21 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EncryptionService encryptionService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            EncryptionService encryptionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.encryptionService = encryptionService;
     }
 
     public UserResponse getCurrentUser(String email) {
         User user =
                 userRepository
-                        .findByEmail(email)
+                        .findByEmailHmac(encryptionService.hmac(email))
                         .orElseThrow(() -> new RuntimeException("User not found"));
         return toResponse(user);
     }
@@ -25,7 +31,7 @@ public class UserService {
     public UserResponse updateUser(String email, UpdateUserRequest request) {
         User user =
                 userRepository
-                        .findByEmail(email)
+                        .findByEmailHmac(encryptionService.hmac(email))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (request.name() != null) {

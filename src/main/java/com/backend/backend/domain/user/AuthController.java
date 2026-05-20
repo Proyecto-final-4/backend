@@ -1,6 +1,9 @@
 package com.backend.backend.domain.user;
 
+import com.backend.backend.shared.crypto.RsaKeyService;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,20 +15,37 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final RsaKeyService rsaKeyService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, RsaKeyService rsaKeyService) {
         this.authService = authService;
+        this.rsaKeyService = rsaKeyService;
+    }
+
+    /**
+     * Retorna la clave pública RSA-2048 (SPKI/Base64) para que el cliente cifre las credenciales
+     * antes de enviarlas. La clave es efímera y se regenera en cada arranque.
+     */
+    @GetMapping("/public-key")
+    @ResponseStatus(HttpStatus.OK)
+    public Map<String, String> getPublicKey() {
+        return Map.of("publicKey", rsaKeyService.getPublicKeyBase64());
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse register(@RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public AuthResponse register(@RequestBody EncryptedRegisterRequest request) {
+        String name = rsaKeyService.decrypt(request.encryptedName());
+        String email = rsaKeyService.decrypt(request.encryptedEmail());
+        String password = rsaKeyService.decrypt(request.encryptedPassword());
+        return authService.register(new RegisterRequest(name, email, password));
     }
 
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    public AuthResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public AuthResponse login(@RequestBody EncryptedLoginRequest request) {
+        String email = rsaKeyService.decrypt(request.encryptedEmail());
+        String password = rsaKeyService.decrypt(request.encryptedPassword());
+        return authService.login(new LoginRequest(email, password));
     }
 }
