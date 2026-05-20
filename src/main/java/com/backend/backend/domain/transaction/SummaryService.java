@@ -74,7 +74,7 @@ public class SummaryService {
         BigDecimal totalExpense = BigDecimal.ZERO;
         for (Object[] row : typeTotals) {
             TransactionType type = (TransactionType) row[0];
-            BigDecimal sum = (BigDecimal) row[1];
+            BigDecimal sum = ((BigDecimal) row[1]).stripTrailingZeros();
             if (type == TransactionType.INCOME) totalIncome = sum;
             else if (type == TransactionType.EXPENSE) totalExpense = sum;
         }
@@ -89,7 +89,7 @@ public class SummaryService {
             UUID categoryId = (UUID) row[0];
             String categoryName = (String) row[1];
             TransactionType type = (TransactionType) row[2];
-            BigDecimal sum = (BigDecimal) row[3];
+            BigDecimal sum = ((BigDecimal) row[3]).stripTrailingZeros();
             CategorySummary entry =
                     new CategorySummary(categoryId, categoryName, sum, BigDecimal.ZERO);
             if (type == TransactionType.INCOME) rawIncome.add(entry);
