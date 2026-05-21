@@ -34,7 +34,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse register(@RequestBody EncryptedRegisterRequest request) {
+    public AuthResponse register(@Valid @RequestBody EncryptedRegisterRequest request) {
         String name = rsaKeyService.decrypt(request.encryptedName());
         String email = rsaKeyService.decrypt(request.encryptedEmail());
         String password = rsaKeyService.decrypt(request.encryptedPassword());

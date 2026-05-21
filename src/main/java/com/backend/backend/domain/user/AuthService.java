@@ -33,7 +33,7 @@ public class AuthService {
 
         String emailHmac = encryptionService.hmac(email);
         if (userRepository.findByEmailHmac(emailHmac).isPresent()) {
-            throw new RuntimeException("Email already registered");
+            throw new EmailAlreadyRegisteredException();
         }
 
         User user = new User();
