@@ -1,9 +1,11 @@
 package com.backend.backend.shared.crypto;
 
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Locale;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
@@ -21,12 +23,13 @@ import org.springframework.stereotype.Service;
  * which simplifies migration of existing plaintext data.
  */
 @Service
-public class EncryptionService {
+public final class EncryptionService {
 
     private static final String AES_GCM = "AES/GCM/NoPadding";
     private static final String HMAC_SHA256 = "HmacSHA256";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_BITS = 128;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     static final String PREFIX = "enc:v1:";
 
@@ -54,7 +57,7 @@ public class EncryptionService {
         }
         try {
             byte[] iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(AES_GCM);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_BITS, iv));
@@ -66,7 +69,7 @@ public class EncryptionService {
             System.arraycopy(ciphertext, 0, combined, iv.length, ciphertext.length);
 
             return PREFIX + Base64.getEncoder().encodeToString(combined);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException("Failed to encrypt value.", e);
         }
     }
@@ -97,7 +100,7 @@ public class EncryptionService {
 
             byte[] plaintext = cipher.doFinal(ciphertext);
             return new String(plaintext, StandardCharsets.UTF_8);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException("Failed to decrypt value.", e);
         }
     }
@@ -116,9 +119,11 @@ public class EncryptionService {
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);
             mac.init(new SecretKeySpec(keyBytes, HMAC_SHA256));
-            byte[] result = mac.doFinal(data.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
+            byte[] result =
+                    mac.doFinal(
+                            data.toLowerCase(Locale.ROOT).trim().getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(result);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException("Failed to compute HMAC.", e);
         }
     }

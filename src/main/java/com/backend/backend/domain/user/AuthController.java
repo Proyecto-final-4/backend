@@ -17,10 +17,15 @@ public class AuthController {
 
     private final AuthService authService;
     private final RsaKeyService rsaKeyService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService, RsaKeyService rsaKeyService) {
+    public AuthController(
+            AuthService authService,
+            RsaKeyService rsaKeyService,
+            PasswordResetService passwordResetService) {
         this.authService = authService;
         this.rsaKeyService = rsaKeyService;
+        this.passwordResetService = passwordResetService;
     }
 
     /**
@@ -48,5 +53,17 @@ public class AuthController {
         String email = rsaKeyService.decrypt(request.encryptedEmail());
         String password = rsaKeyService.decrypt(request.encryptedPassword());
         return authService.login(new LoginRequest(email, password));
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.OK)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.forgotPassword(request);
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.OK)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request);
     }
 }

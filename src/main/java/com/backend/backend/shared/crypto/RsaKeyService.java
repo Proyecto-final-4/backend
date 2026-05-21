@@ -1,7 +1,9 @@
 package com.backend.backend.shared.crypto;
 
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.MGF1ParameterSpec;
 import java.util.Base64;
@@ -23,7 +25,7 @@ import org.springframework.stereotype.Service;
  * the public key before each login.
  */
 @Service
-public class RsaKeyService {
+public final class RsaKeyService {
 
     private static final Logger log = LoggerFactory.getLogger(RsaKeyService.class);
     private static final int KEY_SIZE = 2048;
@@ -38,7 +40,7 @@ public class RsaKeyService {
             generator.initialize(KEY_SIZE);
             this.keyPair = generator.generateKeyPair();
             log.info("RSA-{} key pair generated successfully for credential encryption.", KEY_SIZE);
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to generate RSA key pair.", e);
         }
     }
@@ -76,7 +78,7 @@ public class RsaKeyService {
             cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate(), oaepSpec);
 
             return new String(cipher.doFinal(cipherBytes), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException("Failed to decrypt RSA credential.", e);
         }
     }

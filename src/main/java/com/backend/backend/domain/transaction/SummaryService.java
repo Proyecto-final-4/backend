@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -222,43 +221,4 @@ public class SummaryService {
                                                         RoundingMode.HALF_UP)))
                 .toList();
     }
-
-    private BigDecimal sumByType(List<Transaction> transactions, TransactionType type) {
-        return transactions.stream()
-                .filter(t -> t.getType() == type)
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private List<CategorySummary> groupByCategoryForType(
-            List<Transaction> transactions, TransactionType type) {
-        Map<CategoryKey, BigDecimal> totals =
-                transactions.stream()
-                        .filter(transaction -> transaction.getType() == type)
-                        .collect(
-                                Collectors.groupingBy(
-                                        transaction ->
-                                                new CategoryKey(
-                                                        transaction.getCategory().getId(),
-                                                        transaction.getCategory().getName()),
-                                        Collectors.reducing(
-                                                BigDecimal.ZERO,
-                                                Transaction::getAmount,
-                                                BigDecimal::add)));
-
-        return totals.entrySet().stream()
-                .map(
-                        entry ->
-                                new CategorySummary(
-                                        entry.getKey().id(),
-                                        entry.getKey().name(),
-                                        entry.getValue(),
-                                        BigDecimal.ZERO))
-                .sorted(
-                        (left, right) ->
-                                left.categoryName().compareToIgnoreCase(right.categoryName()))
-                .toList();
-    }
-
-    private record CategoryKey(UUID id, String name) {}
 }
