@@ -81,10 +81,16 @@ public class PasswordResetService {
                         + to
                         + "\"],"
                         + "\"subject\":\"Restablece tu contraseña — FinanzIA\","
-                        + "\"html\":\"<p>Hola,</p><p>Tu token para restablecer la contraseña"
-                        + " es:</p><p><strong>"
+                        + "\"html\":\"<p>Hola,</p>"
+                        + "<p>Recibimos una solicitud para restablecer tu contraseña.</p>"
+                        + "<p><a href='https://frontend-sooty-five-52.vercel.app/reset-password?token="
                         + token
-                        + "</strong></p><p>Este token expira en 1 hora.</p>\""
+                        + "'>Haz clic aquí para restablecer tu contraseña</a></p>"
+                        + "<p>O copia este enlace en tu navegador:</p>"
+                        + "<p>https://frontend-sooty-five-52.vercel.app/reset-password?token="
+                        + token
+                        + "</p>"
+                        + "<p>Este enlace expira en 1 hora.</p>\""
                         + "}";
 
         HttpRequest httpRequest =
