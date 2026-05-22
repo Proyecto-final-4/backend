@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class PasswordResetService {
 
-    private static final String SENDER = "patrones.estructuras@gmail.com";
+    private static final String SENDER = "estructurasypatrones@gmail.com";
     private static final String INVALID_TOKEN = "Invalid or expired token";
 
     private final UserRepository userRepository;
