@@ -2,37 +2,39 @@ package com.backend.backend.domain.user;
 
 import com.backend.backend.shared.crypto.EncryptionService;
 import jakarta.transaction.Transactional;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PasswordResetService {
 
-    private static final String SENDER = "estructurasypatrones@gmail.com";
+    private static final String RESEND_URL = "https://api.resend.com/emails";
     private static final String INVALID_TOKEN = "Invalid or expired token";
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EncryptionService encryptionService;
-    private final ObjectProvider<JavaMailSender> mailSenderProvider;
+    private final String resendApiKey;
 
     public PasswordResetService(
             UserRepository userRepository,
             PasswordResetTokenRepository tokenRepository,
             PasswordEncoder passwordEncoder,
             EncryptionService encryptionService,
-            ObjectProvider<JavaMailSender> mailSenderProvider) {
+            @Value("${resend.api-key}") String resendApiKey) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.encryptionService = encryptionService;
-        this.mailSenderProvider = mailSenderProvider;
+        this.resendApiKey = resendApiKey;
     }
 
     public void forgotPassword(ForgotPasswordRequest request) {
@@ -51,16 +53,7 @@ public class PasswordResetService {
         resetToken.setUsed(false);
         tokenRepository.save(resetToken);
 
-        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-        if (mailSender != null) {
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom(SENDER);
-            msg.setTo(email);
-            msg.setSubject("Password Reset Request");
-            msg.setText(
-                    "Your password reset token is: " + token + "\n\nThis token expires in 1 hour.");
-            mailSender.send(msg);
-        }
+        sendResetEmail(email, token);
     }
 
     @Transactional
@@ -78,5 +71,34 @@ public class PasswordResetService {
 
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
+    }
+
+    private void sendResetEmail(String to, String token) {
+        String body =
+                "{"
+                        + "\"from\":\"onboarding@resend.dev\","
+                        + "\"to\":[\""
+                        + to
+                        + "\"],"
+                        + "\"subject\":\"Restablece tu contraseña — FinanzIA\","
+                        + "\"html\":\"<p>Hola,</p><p>Tu token para restablecer la contraseña"
+                        + " es:</p><p><strong>"
+                        + token
+                        + "</strong></p><p>Este token expira en 1 hora.</p>\""
+                        + "}";
+
+        HttpRequest httpRequest =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(RESEND_URL))
+                        .header("Authorization", "Bearer " + resendApiKey)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build();
+
+        try {
+            HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send password reset email", e);
+        }
     }
 }
